@@ -1,0 +1,6 @@
+GEO_DOWNLOAD_DIR = './downloads/geo_downloads/'
+METADATA_OUTPUT_DIR = './downloads/metadata/'
+PROCESSED_DATA_FOLDER = './downloads/processed_data/'
+COMBINED_DATA_OUTPUT_FILE = f'{PROCESSED_DATA_FOLDER}combined_expression_data.csv'
+SOFT_PATH = './downloads/old_geo_downloads/'
+FILTERING_FIGURES = './outputs/filter_figures/'
