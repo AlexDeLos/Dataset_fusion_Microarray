@@ -9,17 +9,13 @@ import sys
 module_dir = './'
 sys.path.append(module_dir)
 from src.constants import *
-from helpers import get_first_indexs,plot_sim_matrix,get_Umap, apply_KNN_impute,hierarchical_clustering_plot,box_plot
+from helpers import get_first_indexs, apply_KNN_impute,box_plot
 
 
 def run_preprocessing(
-plot_nan = False,
-plot_Umap = False,
-plot_boxPlots = False,
-plot_simMatrix = False,
-run_first = True,
-
-no_change = False):
+    plot_nan = False,
+    plot_boxPlots = True,
+    no_change = False):
 
     path = PROCESSED_DATA_FOLDER
 
@@ -28,20 +24,13 @@ no_change = False):
     # Create directory if it doesn't exist
     os.makedirs(out_path, exist_ok=True)
 
-
-    norm_dic = {
-        0: 'Stardardize',
-        1: 'Robust'
-    }
-
     try:
         filtered_df = pd.read_csv(path+'filter.csv', index_col=0)
         print('succesfully loaded data')
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
-        big_df = pd.read_csv(COMBINED_DATA_OUTPUT_FILE)
-        og_big_df = pd.read_csv('/home/alex/Documents/GitHub/Data_collection/df_final/df_last.csv')
+        big_df = pd.read_csv(COMBINED_DATA_OUTPUT_FILE,index_col=0)
         # filter the data on 20%
         nan_percentage_genes = big_df.isna().mean(axis=1) * 100
 
@@ -120,37 +109,24 @@ no_change = False):
     print('nans filled with 0')
 
     for column in big_df:
-        print(big_df[column])
+        # print(big_df[column])
         if (big_df[column]>300).any():
             big_df[column] = np.log2(big_df[column]+1)
 
     print('applied log2')
     def get_study(sample: str):
-        return int(sample.split('_')[-1])
+        return sample.split('_')[0]
     study_map = list(map(get_study,big_df.columns))
-
-    def get_method(sample: str):
-        return str(sample.split('_')[1])
-
-    if run_first:
-        if plot_Umap:
-            matrix = big_df.to_numpy()
-
-            methods = set(map(get_method,big_df.columns))
-            print('plotting UMAP')
-            get_Umap(matrix.T,name='_samples',study_map=study_map,save_loc=out_path, title='Samples coloured by study (No impute)')
-            get_Umap(matrix,name='_genes',save_loc=out_path, title='Gene expression clusters (No impute)')
-            matrix = None
 
     # KNN Impute
     try: 
         print('reading file from: ' + path+'imputed.csv')
-        df_impute = pd.read_csv(path+'/imputed.csv', index_col=0)
+        df_impute:pd.DataFrame = pd.read_csv(path+'/imputed.csv', index_col=0)
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
         print('Could not read file, running KNN impute')
-        df_impute = apply_KNN_impute(big_df,5)
+        df_impute:pd.DataFrame = apply_KNN_impute(big_df,5)
         print('KNN impute ran, saving file')
         df_impute.to_csv(path+'imputed.csv')
         print('file saved at: ' + path+'imputed.csv')
@@ -159,83 +135,54 @@ no_change = False):
 
     # NORMALIZE
     #? Apply batch correction
-    if run_first:
-        if plot_boxPlots:
-            box_plot(df_impute,100, out_path+'box_uncorrected_plots/')
-        if plot_Umap:
-            get_Umap(df_impute.to_numpy().T,name='_samples_impute',study_map=study_map,save_loc=out_path, title='Samples coloured by study')
-            get_Umap(df_impute.to_numpy(),name='_genes_impute',save_loc=out_path, title='Gene expression clusters')
-
     try:
-        df_corrected = pd.read_csv(path+'corrected.csv',index_col=0)
+        study_corrected_df:pd.DataFrame = pd.read_csv(path+'study_corrected.csv',index_col=0)
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
         study_map = list(map(get_study,df_impute.columns))
         # raise ValueError("Running in the cluster")
-        df_corrected = pycombat_norm(df_impute, study_map) #! TODO: this needs the nans removed before we can run it. maybe run impute before or out this before the mapping
-        df_corrected.to_csv(path+'corrected.csv')
-
-
-    if run_first:
-        if plot_boxPlots:
-            box_plot(df_corrected,100, out_path+'/box_corrected_plots/')
-        if plot_Umap:
-            get_Umap(df_corrected.to_numpy().T,name='_samples_impute_corrected',study_map=study_map,save_loc=out_path, title='Samples coloured by study')
-            get_Umap(df_corrected.to_numpy(),name='_genes_impute_corrected',save_loc=out_path, title='Gene expression clusters')
-
-        if plot_simMatrix:
-            plot_sim_matrix(df_impute,indices,chromosomes,name='_Gene_impute_no_correction',save_loc=out_path,title='Gen Sim (Not Corrected)')
-            plot_sim_matrix(df_impute.T,name='_Sample_impute_no_correction',save_loc=out_path,title='Sample Sim (Not Corrected)')
-            plot_sim_matrix(df_corrected,indices,chromosomes,name='_Gene_impute_corrected(No_norm)',save_loc=out_path,title='Gene Sim (Corrected)')
-            plot_sim_matrix(df_corrected.T,name='_Sample_impute_corrected(No_norm)',save_loc=out_path,title='Sample Sim (Corrected)')
-
+        d = dict([(y,x+1) for x,y in enumerate(sorted(set(study_map)))])
+        batches = []
+        for el in study_map:
+            batches.append(d[el])
+        study_corrected_df:pd.DataFrame = pycombat_norm(df_impute, batches)
+        study_corrected_df.to_csv(path+'study_corrected.csv')
     try:
-        standardized_df = pd.read_csv(path+'standardized.csv', index_col=0)
+        standardized_df = pd.read_csv(path+'/standardized.csv', index_col=0)
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
-        # standardized_df = (df_corrected - df_corrected.mean()) / df_corrected.std()
-        standardized_df = ((df_corrected.T - df_corrected.T.mean()) / df_corrected.T.std()).T
-        standardized_df.to_csv(path+'standardized.csv')
-
+        standardized_df = ((df_impute.T - df_impute.T.mean()) / df_impute.T.std()).T
+        standardized_df.to_csv(path+'/standardized.csv')
     try:
-        robust_df = pd.read_csv(path+'robust.csv', index_col=0)
+        robust_df = pd.read_csv(path+'/robust.csv', index_col=0)
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
         scaler = RobustScaler()
-        robust_df = pd.DataFrame(scaler.fit_transform(df_corrected), columns=df_corrected.columns)
-        robust_df.to_csv(path+'robust.csv')
+        robust_df = pd.DataFrame(scaler.fit_transform(df_impute), columns=df_impute.columns)
+        robust_df.to_csv(path+'/robust.csv')
+    
+    try:
+        double_norm = pd.read_csv(path+'/2_way_norm.csv', index_col=0)
+    except FileNotFoundError:
+        if no_change:
+            raise FileNotFoundError            
+        mat = study_corrected_df.to_numpy()
+        q75, q25 = np.percentile(mat, [75 ,25],axis=1,keepdims=True)
+        iqr = q75 - q25
+        norm = (mat - np.median(mat,axis=1,keepdims=True))/iqr
+        double_norm = pd.DataFrame(norm, columns=study_corrected_df.columns,index=study_corrected_df.index)
+        double_norm.to_csv(path+'/2_way_norm.csv')
 
-    normalized_dfs = [standardized_df,robust_df]
-
-    for i,normalized_df_entry in enumerate(normalized_dfs):
-        #plot the matrix
-        plt.figure(figsize=(100, 100))  # Adjust width & height as needed
-        plt.imshow(normalized_df_entry, cmap='hot', interpolation='none')  # 'none' removes blurring
-        plt.axis('off')  # Optional: removes axes for cleaner output
-        plt.colorbar()
-        plt.savefig(out_path + 'large_pixels_matrix_'+norm_dic[i]+'.svg', dpi=300, bbox_inches='tight')
-        plt.close()
-
-    for i,normalized_df_entry in enumerate(normalized_dfs):
-        norm_matrix = normalized_df_entry.to_numpy()
-        if plot_boxPlots:
-            box_plot(normalized_df_entry,100, out_path+'box_norm_plots/', group=i)
-        if plot_simMatrix:
-            print('plotting sim matrix, impute')
-            plot_sim_matrix(norm_matrix,indices,chromosomes,name='_Gene_impute_'+norm_dic[i],save_loc=out_path, title='Gene Sim ('+norm_dic[i]+')')
-            plot_sim_matrix(norm_matrix.T,name='_Sample_impute_'+norm_dic[i],save_loc=out_path, title='Sample Sim ('+norm_dic[i]+')')
-
-        if plot_Umap:
-            print('plotting UMAP, impute')
-            get_Umap(norm_matrix,name='_genes_final_'+norm_dic[i],save_loc=out_path, title='Gene expression clusters ('+norm_dic[i]+')')
-            get_Umap(norm_matrix.T,name='_samples_final_'+norm_dic[i],study_map=study_map,save_loc=out_path, title='Samples coloured by study ('+norm_dic[i]+')')
-
-
-        hierarchical_clustering_plot(norm_matrix,path=out_path, name=norm_dic[i])
-
+    
+    if plot_boxPlots:
+        box_plot(df_impute,120, out_path+'/uncorrected_box_plots/')
+        box_plot(study_corrected_df,120, out_path+'/study_corrected_box_plots/')
+        box_plot(double_norm,120, out_path+'/2_way_norm_plots/')
+        box_plot(robust_df,120, out_path+'/robust/')
+        box_plot(standardized_df,120,out_path+'/standardized/')
     print('Done')
 
 if __name__ == '__main__':

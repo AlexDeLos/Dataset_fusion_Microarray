@@ -15,7 +15,7 @@ def GSE110079_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have a 'Sample characteristicts' key
+                                Expected to have a 'sample_characteristicts' key
                                 which is a list of strings, where each string
                                 describes a characteristic like 'tissue:' or 'treatment:'.
 
@@ -30,8 +30,8 @@ def GSE110079_extractor(sample_metadata: dict) -> dict:
         "medium": None
     }
 
-    # Safely get 'Sample characteristicts', defaulting to an empty list if not present
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # Safely get 'sample_characteristicts', defaulting to an empty list if not present
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     raw_treatment_str = None
 
@@ -104,15 +104,15 @@ def GSE27548_extractor(sample_metadata: dict) -> dict:
                                 Example:
                                 {
                                     'Sample_id': 'GSM680322',
-                                    'Sample title:': ['leaf_Ws-2_wet_3'],
-                                    'Sample source_name:': ['rosette leaf'],
-                                    'Sample characteristicts': [
+                                    'sample_title': ['leaf_Ws-2_wet_3'],
+                                    'sample_source_name': ['rosette leaf'],
+                                    'sample_characteristicts': [
                                         'accession: CS2360',
                                         'treatment: Wet',
                                         'ecotype: Ws-2',
                                         'tissue: rosette leaf'
                                     ],
-                                    'Sample extraction protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']
+                                    'sample_extraction_protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']
                                 }
 
     Returns:
@@ -122,18 +122,18 @@ def GSE27548_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract Tissue
-    # The 'tissue' information is found within the 'Sample characteristicts' list
+    # The 'tissue' information is found within the 'sample_characteristicts' list
     # as an item starting with 'tissue:'.
     tissue = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
-    # As a fallback, 'Sample source_name:' also contains tissue information.
-    if tissue is None and 'Sample source_name:' in sample_metadata and sample_metadata['Sample source_name:']:
-        # Assuming 'Sample source_name:' is a list and the first item is the tissue.
-        tissue = sample_metadata['Sample source_name:'][0].strip()
+    # As a fallback, 'sample_source_name' also contains tissue information.
+    if tissue is None and 'sample_source_name' in sample_metadata and sample_metadata['sample_source_name']:
+        # Assuming 'sample_source_name' is a list and the first item is the tissue.
+        tissue = sample_metadata['sample_source_name'][0].strip()
 
     if tissue:
         extracted_data['tissue'] = tissue
@@ -145,11 +145,11 @@ def GSE27548_extractor(sample_metadata: dict) -> dict:
 
 
     # 2. Extract Treatment
-    # The 'treatment' information is found within the 'Sample characteristicts' list
+    # The 'treatment' information is found within the 'sample_characteristicts' list
     # as an item starting with 'treatment:'. The schema expects an array of strings.
     treatment_list = []
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('treatment:'):
                 treatment = characteristic.split(':', 1)[1].strip()
                 treatment_list.append('control' if treatment == 'Wet' else 'drought environment')
@@ -191,8 +191,8 @@ def GSE63128_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # The tissue information is found within the 'sample_characteristicts' list.
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue_found = False
     for char_string in characteristics:
         if char_string.startswith('tissue:'):
@@ -204,7 +204,7 @@ def GSE63128_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = "unknown" 
 
     # 2. Extract 'treatment'
-    # The specific treatment condition is indicated by 'sample group' in 'Sample characteristicts'.
+    # The specific treatment condition is indicated by 'sample group' in 'sample_characteristicts'.
     # We map these specific groups to more general treatment descriptions.
     treatment_group = None
     for char_string in characteristics:
@@ -234,40 +234,6 @@ def GSE63128_extractor(sample_metadata: dict) -> dict:
 
     return extracted_data
 
-if __name__ == '__main__':
-    # Example usage with a sample from the provided metadata
-    samples_metadata = {
-        'GSM1541851': {'Sample_id': 'GSM1541851', 'Sample title:': ['Recovery08hr, biological rep1'], 'Sample source_name:': ['leaf_Recovery08hr_19 days old'], 'Sample characteristicts': ['ecotype: Col-0', 'genotype/variation: wild-type', 'age: 19 days', 'sample group: Recovery08hr', 'tissue: leaf'], 'Sample extraction protocol': ['RNeasy plant mini kit (Qiagen)']},
-        'GSM1541850': {'Sample_id': 'GSM1541850', 'Sample title:': ['Heat24hr, biological rep1'], 'Sample source_name:': ['leaf_Heat24hr_19 days old'], 'Sample characteristicts': ['ecotype: Col-0', 'genotype/variation: wild-type', 'age: 19 days', 'sample group: Heat24hr', 'tissue: leaf'], 'Sample extraction protocol': ['RNeasy plant mini kit (Qiagen)']},
-        'GSM1541848': {'Sample_id': 'GSM1541848', 'Sample title:': ['Control24hr, 18 days old, biological rep1'], 'Sample source_name:': ['leaf_Control24hr_18 days old'], 'Sample characteristicts': ['ecotype: Col-0', 'genotype/variation: wild-type', 'age: 18 days', 'sample group: Control24hr', 'tissue: leaf'], 'Sample extraction protocol': ['RNeasy plant mini kit (Qiagen)']}
-    }
-
-    print("--- Extracting for GSM1541851 (Recovery) ---")
-    sample_id_1 = 'GSM1541851'
-    extracted_info_1 = GSE63128_extractor(samples_metadata[sample_id_1])
-    print(json.dumps(extracted_info_1, indent=4))
-
-    print("\n--- Extracting for GSM1541850 (Heat) ---")
-    sample_id_2 = 'GSM1541850'
-    extracted_info_2 = GSE63128_extractor(samples_metadata[sample_id_2])
-    print(json.dumps(extracted_info_2, indent=4))
-
-    print("\n--- Extracting for GSM1541848 (Control) ---")
-    sample_id_3 = 'GSM1541848'
-    extracted_info_3 = GSE63128_extractor(samples_metadata[sample_id_3])
-    print(json.dumps(extracted_info_3, indent=4))
-
-    # Example with a hypothetical sample missing some characteristics
-    print("\n--- Extracting for a hypothetical sample with missing info ---")
-    hypothetical_sample = {
-        'Sample_id': 'HypoSample1',
-        'Sample title:': ['Just a test'],
-        'Sample characteristicts': ['ecotype: Test', 'genotype/variation: mutant']
-    }
-    extracted_info_hypo = GSE63128_extractor(hypothetical_sample)
-    print(json.dumps(extracted_info_hypo, indent=4))
-
-
 import json
 
 def GSE5624_extractor(sample_metadata: dict) -> dict:
@@ -284,10 +250,10 @@ def GSE5624_extractor(sample_metadata: dict) -> dict:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
                                 Example:
                                 {'Sample_id': 'GSM131349',
-                                 'Sample title:': ['AtGen_6-4421_Droughtstress-Roots-6.0h_Rep1'],
-                                 'Sample source_name:': ['Col-0'],
-                                 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'],
-                                 'Sample extraction protocol': ''}
+                                 'sample_title': ['AtGen_6-4421_Droughtstress-Roots-6.0h_Rep1'],
+                                 'sample_source_name': ['Col-0'],
+                                 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'],
+                                 'sample_extraction_protocol': ''}
 
     Returns:
         dict: A dictionary formatted according to the specified schema,
@@ -302,11 +268,11 @@ def GSE5624_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # It appears as a string like "Tissue: Roots" or "Tissue: Shoots".
     tissue = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('Tissue:'):
                 tissue = characteristic.split('Tissue: ')[1].strip()
                 break
@@ -346,8 +312,8 @@ def GSE60960_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample characteristicts',
-                                'Sample title:', and 'Sample source_name:'.
+                                Expected keys include 'sample_characteristicts',
+                                'sample_title', and 'sample_source_name'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema, containing
@@ -360,25 +326,25 @@ def GSE60960_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Tissue information is found in 'Sample characteristicts', which is a list of strings.
+    # Tissue information is found in 'sample_characteristicts', which is a list of strings.
     # We look for the string starting with 'tissue:'.
     tissue_found = False
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.lower().startswith('tissue:'):
                 extracted_data['tissue'] = characteristic.split(':', 1)[1].strip()
                 tissue_found = True
                 break
     if not tissue_found:
         # 'tissue' is a required field. If not found, raise an error.
-        raise ValueError("Tissue information not found in 'Sample characteristicts'.")
+        raise ValueError("Tissue information not found in 'sample_characteristicts'.")
 
     # 2. Extract 'treatment'
-    # Treatment information is typically found in 'Sample title:'.
+    # Treatment information is typically found in 'sample_title'.
     # We look for keywords like 'MLD stressed' or 'untreated'.
     treatment_list = []
-    if 'Sample title:' in sample_metadata and isinstance(sample_metadata['Sample title:'], list) and sample_metadata['Sample title:']:
-        title_text = sample_metadata['Sample title:'][0]
+    if 'sample_title' in sample_metadata and isinstance(sample_metadata['sample_title'], list) and sample_metadata['sample_title']:
+        title_text = sample_metadata['sample_title'][0]
         if 'MLD stressed' in title_text:
             treatment_list.append('MLD stress') # Interpreting "MLD stressed" as "MLD stress"
         elif 'untreated' in title_text:
@@ -386,13 +352,13 @@ def GSE60960_extractor(sample_metadata: dict) -> dict:
     
     if not treatment_list:
         # 'treatment' is a required field. If no recognized treatment is found, raise an error.
-        raise ValueError("Treatment information not found or recognized in 'Sample title:'.")
+        raise ValueError("Treatment information not found or recognized in 'sample_title'.")
     
     extracted_data['treatment'] = treatment_list
 
     # 3. Extract 'medium'
     # The growth medium is not explicitly named but is implied by "standard (UT) conditions"
-    # mentioned in 'Sample source_name:' and the overall study design.
+    # mentioned in 'sample_source_name' and the overall study design.
     # This appears to be a constant value across all samples in this dataset.
     extracted_data['medium'] = "standard conditions"
 
@@ -416,7 +382,7 @@ def GSE46205_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to contain keys like 'Sample title:' and 'Sample characteristicts'.
+                                Expected to contain keys like 'sample_title' and 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema.
@@ -428,27 +394,27 @@ def GSE46205_extractor(sample_metadata: dict) -> dict:
         "medium": None
     }
 
-    # Extract 'tissue' from 'Sample characteristicts'
+    # Extract 'tissue' from 'sample_characteristicts'
     # The tissue is specified as 'cell type: [value]'
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('cell type:'):
                 extracted_data['tissue'] = characteristic.split(':', 1)[1].strip()
                 break
 
-    # Extract 'medium' from 'Sample characteristicts'
+    # Extract 'medium' from 'sample_characteristicts'
     # The growth medium is specified as 'growth media: [value]'
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('growth media:'):
                 extracted_data['medium'] = characteristic.split(':', 1)[1].strip()
                 break
 
-    # Extract 'treatment' from 'Sample title:'
+    # Extract 'treatment' from 'sample_title'
     # Treatments are typically "140mM NaCl for X hours". If "standard conditions" are mentioned,
     # the treatment list should be empty as it's not a stress/treatment.
-    if 'Sample title:' in sample_metadata and isinstance(sample_metadata['Sample title:'], list) and sample_metadata['Sample title:']:
-        sample_title = sample_metadata['Sample title:'][0]
+    if 'sample_title' in sample_metadata and isinstance(sample_metadata['sample_title'], list) and sample_metadata['sample_title']:
+        sample_title = sample_metadata['sample_title'][0]
 
         # Look for NaCl treatment and its duration
         nacl_match = re.search(r'140mM NaCl for (\d+ (?:hour|hours))', sample_title)
@@ -482,9 +448,9 @@ def GSE5620_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found in 'Sample characteristicts' list.
+    # The tissue information is found in 'sample_characteristicts' list.
     # Example: ['Stock Code: N1092', 'Tissue: Shoots']
-    sample_characteristics = sample_metadata.get('Sample characteristicts', [])
+    sample_characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = None
     for char_str in sample_characteristics:
         if char_str.startswith('Tissue:'):
@@ -518,10 +484,10 @@ def GSE5620_extractor(sample_metadata: dict) -> dict:
 if __name__ == '__main__':
     # Example usage with a sample from the provided samples_metadata
     samples_metadata = {
-        'GSM131247': {'Sample_id': 'GSM131247', 'Sample title:': ['AtGen_6-0411_Control-Shoots-6.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131245': {'Sample_id': 'GSM131245', 'Sample title:': ['AtGen_6-0821_Control-Roots-4.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131223': {'Sample_id': 'GSM131223', 'Sample title:': ['AtGen_6-0011_Control-Shoots-0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131258': {'Sample_id': 'GSM131258', 'Sample title:': ['AtGen_6-0622_Control-Roots-24.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''}
+        'GSM131247': {'Sample_id': 'GSM131247', 'sample_title': ['AtGen_6-0411_Control-Shoots-6.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131245': {'Sample_id': 'GSM131245', 'sample_title': ['AtGen_6-0821_Control-Roots-4.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131223': {'Sample_id': 'GSM131223', 'sample_title': ['AtGen_6-0011_Control-Shoots-0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131258': {'Sample_id': 'GSM131258', 'sample_title': ['AtGen_6-0622_Control-Roots-24.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''}
     }
 
     print("--- Extracted Data for Sample GSM131247 ---")
@@ -571,12 +537,12 @@ def GSE27550_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # The 'Sample characteristicts' field is a list of strings,
+    # The 'sample_characteristicts' field is a list of strings,
     # where each string is in "key: value" format.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     # 1. Extract 'tissue'
-    # Look for 'tissue: <value>' in 'Sample characteristicts'
+    # Look for 'tissue: <value>' in 'sample_characteristicts'
     tissue_found = False
     for char_str in characteristics:
         if char_str.lower().startswith('tissue:'):
@@ -585,23 +551,23 @@ def GSE27550_extractor(sample_metadata: dict) -> dict:
             break
     
     # As a fallback, if 'tissue:' is not explicitly in characteristics,
-    # check 'Sample source_name:', which often contains tissue information.
-    if not tissue_found and 'Sample source_name:' in sample_metadata and sample_metadata['Sample source_name:']:
-        # Assuming 'Sample source_name:' is a list and the first element is the tissue
-        extracted_data['tissue'] = sample_metadata['Sample source_name:'][0].strip()
+    # check 'sample_source_name', which often contains tissue information.
+    if not tissue_found and 'sample_source_name' in sample_metadata and sample_metadata['sample_source_name']:
+        # Assuming 'sample_source_name' is a list and the first element is the tissue
+        extracted_data['tissue'] = sample_metadata['sample_source_name'][0].strip()
     
     # If tissue is still not found, assign a default or raise an error if it's strictly required
     # For this dataset, 'rosette leaf' is consistently present.
     if 'tissue' not in extracted_data:
         # Based on the provided samples, tissue is always 'rosette leaf'
-        # and is either in 'Sample characteristicts' or 'Sample source_name:'.
+        # and is either in 'sample_characteristicts' or 'sample_source_name'.
         # If it somehow isn't, this would be a place to handle it (e.g., default or error).
         # For this specific dataset, it seems consistently available.
         pass # No specific action needed as it's expected to be found.
 
 
     # 2. Extract 'treatment'
-    # Look for 'treatment: <value>' in 'Sample characteristicts'
+    # Look for 'treatment: <value>' in 'sample_characteristicts'
     treatment_list = []
     for char_str in characteristics:
         if char_str.lower().startswith('treatment:'):
@@ -629,10 +595,10 @@ if __name__ == '__main__':
 
     # Example samples metadata (used to guide the function's logic)
     samples_metadata = {
-        'GSM680404': {'Sample_id': 'GSM680404', 'Sample title:': ['leaf_Ull2-5_dry_2'], 'Sample source_name:': ['rosette leaf'], 'Sample characteristicts': ['accession: CS22586', 'treatment: Dry', 'tissue: rosette leaf'], 'Sample extraction protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']},
-        'GSM680390': {'Sample_id': 'GSM680390', 'Sample title:': ['leaf_Omo2-3_dry_1'], 'Sample source_name:': ['rosette leaf'], 'Sample characteristicts': ['accession: CS22585', 'treatment: Dry', 'tissue: rosette leaf'], 'Sample extraction protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']},
-        'GSM680393': {'Sample_id': 'GSM680393', 'Sample title:': ['leaf_Omo2-3_wet_2'], 'Sample source_name:': ['rosette leaf'], 'Sample characteristicts': ['accession: CS22585', 'treatment: Wet', 'tissue: rosette leaf'], 'Sample extraction protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']},
-        'GSM680377': {'Sample_id': 'GSM680377', 'Sample title:': ['leaf_Bil-5_wet_3'], 'Sample source_name:': ['rosette leaf'], 'Sample characteristicts': ['accession: CS22578', 'treatment: Wet', 'tissue: rosette leaf'], 'Sample extraction protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']}
+        'GSM680404': {'Sample_id': 'GSM680404', 'sample_title': ['leaf_Ull2-5_dry_2'], 'sample_source_name': ['rosette leaf'], 'sample_characteristicts': ['accession: CS22586', 'treatment: Dry', 'tissue: rosette leaf'], 'sample_extraction_protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']},
+        'GSM680390': {'Sample_id': 'GSM680390', 'sample_title': ['leaf_Omo2-3_dry_1'], 'sample_source_name': ['rosette leaf'], 'sample_characteristicts': ['accession: CS22585', 'treatment: Dry', 'tissue: rosette leaf'], 'sample_extraction_protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']},
+        'GSM680393': {'Sample_id': 'GSM680393', 'sample_title': ['leaf_Omo2-3_wet_2'], 'sample_source_name': ['rosette leaf'], 'sample_characteristicts': ['accession: CS22585', 'treatment: Wet', 'tissue: rosette leaf'], 'sample_extraction_protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']},
+        'GSM680377': {'Sample_id': 'GSM680377', 'sample_title': ['leaf_Bil-5_wet_3'], 'sample_source_name': ['rosette leaf'], 'sample_characteristicts': ['accession: CS22578', 'treatment: Wet', 'tissue: rosette leaf'], 'sample_extraction_protocol': ['Qiagen RNAasy Plant Mini prep, samples initially harvested in RNAlater']}
     }
 
     print("--- Testing with sample GSM680404 (Dry treatment) ---")
@@ -685,11 +651,11 @@ def GSE5622_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is typically found within the 'Sample characteristicts' list.
+    # The tissue information is typically found within the 'sample_characteristicts' list.
     # Example: ['Stock Code: N1092', 'Tissue: Roots']
     tissue = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('Tissue:'):
                 # Extract the part after "Tissue:" and strip any leading/trailing whitespace
                 tissue = characteristic.split(':', 1)[1].strip()
@@ -729,8 +695,8 @@ def GSE5628_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample title:' and
-                                'Sample characteristicts'.
+                                Expected keys include 'sample_title' and
+                                'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted as a JSON instance conforming to the
@@ -740,11 +706,11 @@ def GSE5628_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
-    # Example: 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots']
+    # The tissue information is found within the 'sample_characteristicts' list.
+    # Example: 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots']
     tissue = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('Tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
@@ -753,13 +719,13 @@ def GSE5628_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue
 
     # 2. Extract 'treatment'
-    # Treatments are derived from the 'Sample title:'.
+    # Treatments are derived from the 'sample_title'.
     # The study metadata indicates "Heat stress" as a primary treatment.
     # Sample titles also show "recovery" as a potential additional phase.
-    # Example: 'Sample title:': ['AtGen_6-9411_Heatstress(3h)+3hrecovery-Shoots-6.0h_Rep1']
+    # Example: 'sample_title': ['AtGen_6-9411_Heatstress(3h)+3hrecovery-Shoots-6.0h_Rep1']
     treatments = []
-    if 'Sample title:' in sample_metadata and sample_metadata['Sample title:']:
-        title = sample_metadata['Sample title:'][0]
+    if 'sample_title' in sample_metadata and sample_metadata['sample_title']:
+        title = sample_metadata['sample_title'][0]
 
         # All samples in this study are related to "Heat stress"
         if "Heatstress" in title:
@@ -794,7 +760,7 @@ def GSE41935_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have a 'Sample characteristicts' key
+                                Expected to have a 'sample_characteristicts' key
                                 which is a list of strings.
 
     Returns:
@@ -809,8 +775,8 @@ def GSE41935_extractor(sample_metadata: dict) -> dict:
     }
 
     # The primary source of information for tissue and treatment is
-    # the 'Sample characteristicts' list.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # the 'sample_characteristicts' list.
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     # 1. Extract 'tissue'
     # Look for an item starting with 'tissue:' in the characteristics list.
@@ -878,7 +844,7 @@ def GSE76827_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have a 'Sample characteristicts' key
+                                Expected to have a 'sample_characteristicts' key
                                 which is a list of strings.
 
     Returns:
@@ -895,10 +861,10 @@ def GSE76827_extractor(sample_metadata: dict) -> dict:
     # This value is constant across all samples in this study.
     extracted_info['medium'] = "ceramics granular soil"
 
-    # 2. Extract 'tissue' and 'treatment' from 'Sample characteristicts'
-    # The 'Sample characteristicts' field is a list of strings, where each string
+    # 2. Extract 'tissue' and 'treatment' from 'sample_characteristicts'
+    # The 'sample_characteristicts' field is a list of strings, where each string
     # contains a key-value pair separated by a colon (e.g., 'tissue: shoot').
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     for char_string in characteristics:
         if char_string.startswith('tissue:'):
@@ -937,8 +903,8 @@ def GSE34188_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # Extract primary identifiers from the sample metadata
-    source_name = sample_metadata['Sample source_name:'][0]
-    characteristics = sample_metadata['Sample characteristicts'][0]
+    source_name = sample_metadata['sample_source_name'][0]
+    characteristics = sample_metadata['sample_characteristicts'][0]
 
     # --- Extract Tissue ---
     if characteristics == 'treatment group: tissue':
@@ -1070,9 +1036,9 @@ def GSE126373_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # --- Extract Tissue, Temperature, and Timepoint from 'Sample characteristicts' ---
+    # --- Extract Tissue, Temperature, and Timepoint from 'sample_characteristicts' ---
     # These are found in a list of strings, each formatted as "key: value"
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     tissue_val = None
     temperature_val = None
@@ -1088,7 +1054,7 @@ def GSE126373_extractor(sample_metadata: dict) -> dict:
 
     # --- Populate 'tissue' field ---
     # The schema requires 'tissue' to be a string.
-    # Based on the metadata, 'tissue' is always present in 'Sample characteristicts'.
+    # Based on the metadata, 'tissue' is always present in 'sample_characteristicts'.
     extracted_data['tissue'] = tissue_val
 
     # --- Populate 'treatment' field ---
@@ -1141,9 +1107,9 @@ def GSE201609_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Tissue information is found in 'Sample characteristicts' list, e.g., 'tissue: Shoot'
+    # Tissue information is found in 'sample_characteristicts' list, e.g., 'tissue: Shoot'
     tissue = None
-    for char_str in sample_metadata.get('Sample characteristicts', []):
+    for char_str in sample_metadata.get('sample_characteristicts', []):
         if char_str.startswith('tissue:'):
             # Split by the first colon and strip whitespace from the value
             tissue = char_str.split(':', 1)[1].strip()
@@ -1153,9 +1119,9 @@ def GSE201609_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue
 
     # 2. Extract 'treatment'
-    # Treatment information is found in 'Sample characteristicts' list, e.g., 'treatment: Ethanol treatment followed by drought'
+    # Treatment information is found in 'sample_characteristicts' list, e.g., 'treatment: Ethanol treatment followed by drought'
     treatment_raw = None
-    for char_str in sample_metadata.get('Sample characteristicts', []):
+    for char_str in sample_metadata.get('sample_characteristicts', []):
         if char_str.startswith('treatment:'):
             # Split by the first colon and strip whitespace from the value
             treatment_raw = char_str.split(':', 1)[1].strip()
@@ -1206,22 +1172,22 @@ def GSE40061_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # Example: ['tissue: root', 'cultivar/ecotype: camta1']
     tissue = "unknown" # Default in case it's unexpectedly missing
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
     extracted_data['tissue'] = tissue
 
     # 2. Extract 'treatment'
-    # Treatment information (e.g., 'drought', 'water') is derived from 'Sample source_name:'.
+    # Treatment information (e.g., 'drought', 'water') is derived from 'sample_source_name'.
     # Example: ['Arabidopsis Thaliana mutant root in drought condition']
     treatments = []
-    if 'Sample source_name:' in sample_metadata and sample_metadata['Sample source_name:']:
-        source_name_lower = sample_metadata['Sample source_name:'][0].lower()
+    if 'sample_source_name' in sample_metadata and sample_metadata['sample_source_name']:
+        source_name_lower = sample_metadata['sample_source_name'][0].lower()
         
         # Check for specific conditions/treatments
         if 'drought' in source_name_lower:
@@ -1253,8 +1219,8 @@ def GSE62163_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample characteristicts' and
-                                'Sample source_name:'.
+                                Expected keys include 'sample_characteristicts' and
+                                'sample_source_name'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema, containing
@@ -1263,22 +1229,22 @@ def GSE62163_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # Example: 'tissue: shoot tissue above medium'
     tissue_value = "unspecified tissue" # Default value if not found
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 tissue_value = characteristic.split(':', 1)[1].strip()
                 break
     extracted_data['tissue'] = tissue_value
 
     # 2. Extract 'treatment'
-    # Treatments are derived from the 'Sample source_name:' string.
+    # Treatments are derived from the 'sample_source_name' string.
     # Examples: 'Arabidopsis seedlings 3 h HS, no-EBR', 'Arabidopsis seedlings no-stress, 1 µM EBR for 21 days'
     treatments = []
-    if 'Sample source_name:' in sample_metadata and isinstance(sample_metadata['Sample source_name:'], list):
-        source_name_str = sample_metadata['Sample source_name:'][0] if sample_metadata['Sample source_name:'] else ""
+    if 'sample_source_name' in sample_metadata and isinstance(sample_metadata['sample_source_name'], list):
+        source_name_str = sample_metadata['sample_source_name'][0] if sample_metadata['sample_source_name'] else ""
 
         # Check for EBR (Brassinosteroid) treatment
         if '1 µM EBR' in source_name_str or 'EBR-treated' in source_name_str:
@@ -1330,8 +1296,8 @@ def GSE71237_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The 'tissue' information is found in the 'Sample characteristicts' list.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # The 'tissue' information is found in the 'sample_characteristicts' list.
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = None
     for char_str in characteristics:
         if char_str.startswith('tissue:'):
@@ -1342,9 +1308,9 @@ def GSE71237_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue if tissue else "unknown"
 
     # 2. Extract 'treatment' and 'medium'
-    # These pieces of information are derived from the 'Sample title:' field
+    # These pieces of information are derived from the 'sample_title' field
     # and contextual information from the study's overall design.
-    sample_title = sample_metadata.get('Sample title:', [''])[0]
+    sample_title = sample_metadata.get('sample_title', [''])[0]
     
     treatments = []
     medium = "unknown medium" # Default value for medium
@@ -1406,8 +1372,8 @@ def GSE63372_extractor(sample_metadata: dict) -> dict:
     # across all samples in this study: "0.5X MS plates containing 1% sucrose".
     extracted_data['medium'] = "0.5X MS plates containing 1% sucrose"
 
-    # 2. Extract 'tissue' and 'treatment' from 'Sample characteristicts'
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # 2. Extract 'tissue' and 'treatment' from 'sample_characteristicts'
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     tissue_found = False
     treatment_found = False
@@ -1443,24 +1409,24 @@ if __name__ == '__main__':
     }
 
     samples_metadata = {
-        'GSM1547622': {'Sample_id': 'GSM1547622', 'Sample title:': ['7-day-old seedlings of Col-0 at control condition, biological rep2'], 'Sample source_name:': ['7-day-old seedling of Col-0 at control condition'], 'Sample characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547618': {'Sample_id': 'GSM1547618', 'Sample title:': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1h, biological rep1'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1hr'], 'Sample characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547623': {'Sample_id': 'GSM1547623', 'Sample title:': ['7-day-old seedlings of HSFA6b-OE at control condition, biological rep2'], 'Sample source_name:': ['7-day-old seedling of HSFA6b-OE at control condition'], 'Sample characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547627': {'Sample_id': 'GSM1547627', 'Sample title:': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1h, biological rep2'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1hr'], 'Sample characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547613': {'Sample_id': 'GSM1547613', 'Sample title:': ['7-day-old seedlings of Col-0 at control condition, biological rep1'], 'Sample source_name:': ['7-day-old seedling of Col-0 at control condition'], 'Sample characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547630': {'Sample_id': 'GSM1547630', 'Sample title:': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr, biological rep2'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr'], 'Sample characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547629': {'Sample_id': 'GSM1547629', 'Sample title:': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr, biological rep2'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr'], 'Sample characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547617': {'Sample_id': 'GSM1547617', 'Sample title:': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1h, biological rep1'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1hr'], 'Sample characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547620': {'Sample_id': 'GSM1547620', 'Sample title:': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr, biological rep1'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr'], 'Sample characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547619': {'Sample_id': 'GSM1547619', 'Sample title:': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr, biological rep1'], 'Sample source_name:': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr'], 'Sample characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547616': {'Sample_id': 'GSM1547616', 'Sample title:': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1h, biological rep1'], 'Sample source_name:': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1hr'], 'Sample characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547626': {'Sample_id': 'GSM1547626', 'Sample title:': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1h, biological rep2'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1hr'], 'Sample characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547625': {'Sample_id': 'GSM1547625', 'Sample title:': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1h, biological rep2'], 'Sample source_name:': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1hr'], 'Sample characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547614': {'Sample_id': 'GSM1547614', 'Sample title:': ['7-day-old seedlings of HSFA6b-OE at control condition, biological rep1'], 'Sample source_name:': ['7-day-old seedling of HSFA6b-OE at control condition'], 'Sample characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547615': {'Sample_id': 'GSM1547615', 'Sample title:': ['7-day-old seedlings of HSFA6b-RD at control condition, biological rep1'], 'Sample source_name:': ['7-day-old seedling of HSFA6b-RD at control condition'], 'Sample characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547621': {'Sample_id': 'GSM1547621', 'Sample title:': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr, biological rep1'], 'Sample source_name:': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr'], 'Sample characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547628': {'Sample_id': 'GSM1547628', 'Sample title:': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr, biological rep2'], 'Sample source_name:': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr'], 'Sample characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
-        'GSM1547624': {'Sample_id': 'GSM1547624', 'Sample title:': ['7-day-old seedlings of HSFA6b-RD at control condition, biological rep2'], 'Sample source_name:': ['7-day-old seedling of HSFA6b-RD at control condition'], 'Sample characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'Sample extraction protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]}
+        'GSM1547622': {'Sample_id': 'GSM1547622', 'sample_title': ['7-day-old seedlings of Col-0 at control condition, biological rep2'], 'sample_source_name': ['7-day-old seedling of Col-0 at control condition'], 'sample_characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547618': {'Sample_id': 'GSM1547618', 'sample_title': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1h, biological rep1'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1hr'], 'sample_characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547623': {'Sample_id': 'GSM1547623', 'sample_title': ['7-day-old seedlings of HSFA6b-OE at control condition, biological rep2'], 'sample_source_name': ['7-day-old seedling of HSFA6b-OE at control condition'], 'sample_characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547627': {'Sample_id': 'GSM1547627', 'sample_title': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1h, biological rep2'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-RD treated with 37℃ heat shock for 1hr'], 'sample_characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547613': {'Sample_id': 'GSM1547613', 'sample_title': ['7-day-old seedlings of Col-0 at control condition, biological rep1'], 'sample_source_name': ['7-day-old seedling of Col-0 at control condition'], 'sample_characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547630': {'Sample_id': 'GSM1547630', 'sample_title': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr, biological rep2'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr'], 'sample_characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547629': {'Sample_id': 'GSM1547629', 'sample_title': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr, biological rep2'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr'], 'sample_characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547617': {'Sample_id': 'GSM1547617', 'sample_title': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1h, biological rep1'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1hr'], 'sample_characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547620': {'Sample_id': 'GSM1547620', 'sample_title': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr, biological rep1'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-OE treated with 150mM NaCl for 6hr'], 'sample_characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547619': {'Sample_id': 'GSM1547619', 'sample_title': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr, biological rep1'], 'sample_source_name': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr'], 'sample_characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547616': {'Sample_id': 'GSM1547616', 'sample_title': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1h, biological rep1'], 'sample_source_name': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1hr'], 'sample_characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547626': {'Sample_id': 'GSM1547626', 'sample_title': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1h, biological rep2'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-OE treated with 37℃ heat shock for 1hr'], 'sample_characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547625': {'Sample_id': 'GSM1547625', 'sample_title': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1h, biological rep2'], 'sample_source_name': ['7-day-old seedlings of Col-0 treated with 37℃ heat shock for 1hr'], 'sample_characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 37℃ heat shock for 1hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547614': {'Sample_id': 'GSM1547614', 'sample_title': ['7-day-old seedlings of HSFA6b-OE at control condition, biological rep1'], 'sample_source_name': ['7-day-old seedling of HSFA6b-OE at control condition'], 'sample_characteristicts': ['genotype: HSFA6b-overexpression', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547615': {'Sample_id': 'GSM1547615', 'sample_title': ['7-day-old seedlings of HSFA6b-RD at control condition, biological rep1'], 'sample_source_name': ['7-day-old seedling of HSFA6b-RD at control condition'], 'sample_characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547621': {'Sample_id': 'GSM1547621', 'sample_title': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr, biological rep1'], 'sample_source_name': ['7-day-old seedlings of HSFA6b-RD treated with 150mM NaCl for 6hr'], 'sample_characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547628': {'Sample_id': 'GSM1547628', 'sample_title': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr, biological rep2'], 'sample_source_name': ['7-day-old seedlings of Col-0 treated with 150mM NaCl for 6hr'], 'sample_characteristicts': ['cultivar: Col-0', 'genotype: wildtype', 'tissue: seedling', 'age: 7-day-old', 'treatment: 150mM NaCl for 6hr'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]},
+        'GSM1547624': {'Sample_id': 'GSM1547624', 'sample_title': ['7-day-old seedlings of HSFA6b-RD at control condition, biological rep2'], 'sample_source_name': ['7-day-old seedling of HSFA6b-RD at control condition'], 'sample_characteristicts': ['genotype: HSFA6b dominant-negative', 'tissue: seedling', 'age: 7-day-old', 'treatment: none'], 'sample_extraction_protocol': ["Samples were collected for RNA extraction by use of the RNeasy RNA extraction kit (Qiagen)  according to the manufacturer's instructions."]}
     }
 
     print("--- Testing with a sample under control condition (no treatment) ---")
@@ -1514,7 +1480,7 @@ def GSE83136_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                This typically includes keys like 'Sample characteristicts'.
+                                This typically includes keys like 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted as a JSON instance, containing the extracted
@@ -1528,15 +1494,15 @@ def GSE83136_extractor(sample_metadata: dict) -> dict:
     extracted_data["tissue"] = "seedlings"
 
     # 2. Extract 'treatment'
-    # The 'treatment' information is found within 'Sample characteristicts'
+    # The 'treatment' information is found within 'sample_characteristicts'
     # and describes the specific condition of the sample (e.g., control, 4h after acclimation).
     # The overall study involves "heat shock", so if a sample is not a control,
     # "heat shock" is an implied treatment.
     treatments_list = []
     specific_sample_treatment = None
 
-    if "Sample characteristicts" in sample_metadata and isinstance(sample_metadata["Sample characteristicts"], list):
-        for characteristic in sample_metadata["Sample characteristicts"]:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str) and characteristic.startswith("treatment:"):
                 specific_sample_treatment = characteristic.split(":", 1)[1].strip()
                 break
@@ -1586,9 +1552,9 @@ def GSE63522_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # The 'Sample characteristicts' field is a list of strings, where each string
+    # The 'sample_characteristicts' field is a list of strings, where each string
     # contains a key-value pair (e.g., "tissue: root", "treatment: heat stress").
-    sample_characteristics = sample_metadata.get('Sample characteristicts', [])
+    sample_characteristics = sample_metadata.get('sample_characteristicts', [])
 
     # 1. Extract 'tissue'
     # Look for a string starting with 'tissue:' in the characteristics list.
@@ -1651,9 +1617,9 @@ def GSE26983_extractor(sample_metadata: dict) -> dict:
     treatment_values = []
     medium_value = "Not specified" # Not explicitly found in the provided metadata
 
-    # Information for 'tissue' and 'treatment' is found within 'Sample characteristicts'
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    # Information for 'tissue' and 'treatment' is found within 'sample_characteristicts'
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str):
                 # Extract 'tissue'
                 if characteristic.startswith('tissue:'):
@@ -1697,7 +1663,7 @@ def GSE19700_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # Initialize with default values.
-    # 'tissue' and 'treatment' will be extracted from 'Sample characteristicts'.
+    # 'tissue' and 'treatment' will be extracted from 'sample_characteristicts'.
     # 'medium' is inferred from the study context as it's not explicitly stated
     # in the sample metadata but is a required field in the schema.
     # The study summary mentions "gradual soil drying", strongly implying "soil"
@@ -1706,8 +1672,8 @@ def GSE19700_extractor(sample_metadata: dict) -> dict:
     treatment = []
     medium = "soil" # Inferred from study context: "gradual soil drying"
 
-    # Extract information from 'Sample characteristicts'
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # Extract information from 'sample_characteristicts'
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     for char_string in characteristics:
         if ': ' in char_string:
             key, value = char_string.split(': ', 1)
@@ -1732,9 +1698,9 @@ def GSE19700_extractor(sample_metadata: dict) -> dict:
 if __name__ == '__main__':
     # Example usage with a sample from the provided metadata
     samples_metadata = {
-        'GSM491670': {'Sample_id': 'GSM491670', 'Sample title:': ['Columbia.Dry.MD.rep2'], 'Sample source_name:': ['whole rosette, water-limited, midday'], 'Sample characteristicts': ['ecotype: Columbia-0', 'genotype: wild type', 'tissue: whole rosette', 'age: 32 days', 'treatment: water-limited', 'time of day: 12h00 (midday)'], 'Sample extraction protocol': ["Trizol, as per manufacturer's instructions."]},
-        'GSM491685': {'Sample_id': 'GSM491685', 'Sample title:': ['Columbia.Wet.PD.rep2'], 'Sample source_name:': ['whole rosette, well-watered, pre-dawn'], 'Sample characteristicts': ['ecotype: Columbia-0', 'genotype: wild type', 'tissue: whole rosette', 'age: 32 days', 'treatment: well-watered', 'time of day: 06h00 (pre-dawn)'], 'Sample extraction protocol': ["Trizol, as per manufacturer's instructions."]},
-        'GSM491678': {'Sample_id': 'GSM491678', 'Sample title:': ['Columbia.Wet.MN.rep1'], 'Sample source_name:': ['whole rosette, well-watered, midnight'], 'Sample characteristicts': ['ecotype: Columbia-0', 'genotype: wild type', 'tissue: whole rosette', 'age: 32 days', 'treatment: well-watered', 'time of day: 00h00 (midnight)'], 'Sample extraction protocol': ["Trizol, as per manufacturer's instructions."]},
+        'GSM491670': {'Sample_id': 'GSM491670', 'sample_title': ['Columbia.Dry.MD.rep2'], 'sample_source_name': ['whole rosette, water-limited, midday'], 'sample_characteristicts': ['ecotype: Columbia-0', 'genotype: wild type', 'tissue: whole rosette', 'age: 32 days', 'treatment: water-limited', 'time of day: 12h00 (midday)'], 'sample_extraction_protocol': ["Trizol, as per manufacturer's instructions."]},
+        'GSM491685': {'Sample_id': 'GSM491685', 'sample_title': ['Columbia.Wet.PD.rep2'], 'sample_source_name': ['whole rosette, well-watered, pre-dawn'], 'sample_characteristicts': ['ecotype: Columbia-0', 'genotype: wild type', 'tissue: whole rosette', 'age: 32 days', 'treatment: well-watered', 'time of day: 06h00 (pre-dawn)'], 'sample_extraction_protocol': ["Trizol, as per manufacturer's instructions."]},
+        'GSM491678': {'Sample_id': 'GSM491678', 'sample_title': ['Columbia.Wet.MN.rep1'], 'sample_source_name': ['whole rosette, well-watered, midnight'], 'sample_characteristicts': ['ecotype: Columbia-0', 'genotype: wild type', 'tissue: whole rosette', 'age: 32 days', 'treatment: well-watered', 'time of day: 00h00 (midnight)'], 'sample_extraction_protocol': ["Trizol, as per manufacturer's instructions."]},
         # ... (other samples omitted for brevity)
     }
 
@@ -1773,8 +1739,8 @@ if __name__ == '__main__':
     # This test demonstrates the fallback behavior.
     sample_data_incomplete = {
         'Sample_id': 'GSM_INCOMPLETE',
-        'Sample title:': ['Incomplete Sample'],
-        'Sample characteristicts': ['ecotype: Mutant', 'age: 10 days'], # Missing tissue and treatment
+        'sample_title': ['Incomplete Sample'],
+        'sample_characteristicts': ['ecotype: Mutant', 'age: 10 days'], # Missing tissue and treatment
     }
     extracted_info_incomplete = GSE19700_extractor(sample_data_incomplete)
     print(f"Extracted info for GSM_INCOMPLETE (missing characteristics):")
@@ -1799,7 +1765,7 @@ def GSE58620_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample source_name:'.
+                                Expected keys include 'sample_source_name'.
 
     Returns:
         dict: A dictionary formatted according to the target JSON schema:
@@ -1807,13 +1773,13 @@ def GSE58620_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # Retrieve the 'Sample source_name:' which contains most of the relevant information.
+    # Retrieve the 'sample_source_name' which contains most of the relevant information.
     # Use .get() with a default to safely handle cases where the key might be missing or empty.
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
 
     # 1. Extract 'tissue'
     # Based on the study_metadata and samples_metadata, the tissue is consistently
-    # "Arabidopsis seedling". This is explicitly mentioned in 'Sample source_name:'.
+    # "Arabidopsis seedling". This is explicitly mentioned in 'sample_source_name'.
     if "Arabidopsis seedling" in source_name:
         extracted_data['tissue'] = "Arabidopsis seedling"
     else:
@@ -1822,7 +1788,7 @@ def GSE58620_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = "unknown"
 
     # 2. Extract 'treatment'
-    # Treatments are identified from the 'Sample source_name:' string.
+    # Treatments are identified from the 'sample_source_name' string.
     # These include specific stresses (like heat stress) and environmental conditions
     # (like dark/light conditions), which are considered treatments/stresses in this context.
     treatments = []
@@ -1877,11 +1843,11 @@ def GSE95202_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The 'tissue' information is consistently found within the 'Sample characteristicts'
+    # The 'tissue' information is consistently found within the 'sample_characteristicts'
     # list, in an item starting with "tissue: ". For this dataset, it's always "whole plant".
     tissue_found = False
-    if 'Sample characteristicts' in sample_metadata:
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata:
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 extracted_data['tissue'] = characteristic.split(':', 1)[1].strip()
                 tissue_found = True
@@ -1891,13 +1857,13 @@ def GSE95202_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = "whole plant" # Based on consistent observation in samples_metadata
 
     # 2. Extract 'treatment'
-    # The 'treatment' information is derived from 'Sample source_name:'.
+    # The 'treatment' information is derived from 'sample_source_name'.
     # "water control" implies no specific applied treatment.
     # Other treatments like "ethanol" or "salt stress" are extracted directly,
     # and " and " is used to separate multiple treatments.
     treatments = []
-    if 'Sample source_name:' in sample_metadata and sample_metadata['Sample source_name:']:
-        source_name = sample_metadata['Sample source_name:'][0].lower()
+    if 'sample_source_name' in sample_metadata and sample_metadata['sample_source_name']:
+        source_name = sample_metadata['sample_source_name'][0].lower()
 
         if source_name == "water control":
             # "water control" indicates a baseline, non-treated condition.
@@ -1929,22 +1895,22 @@ if __name__ == '__main__':
         'overall_design': ['Microarray analysis was conducted using ethanol-treated and non-treated plants subjected to non-stress and salt-stress condition for 2 h.']
     }
     samples_metadata_full = {
-        'GSM2498604': {'Sample_id': 'GSM2498604', 'Sample title:': ['ethanol rep. 1'], 'Sample source_name:': ['ethanol'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498611': {'Sample_id': 'GSM2498611', 'Sample title:': ['ethanol and salt stress rep. 4'], 'Sample source_name:': ['ethanol and salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498597': {'Sample_id': 'GSM2498597', 'Sample title:': ['water control rep. 2'], 'Sample source_name:': ['water control'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498603': {'Sample_id': 'GSM2498603', 'Sample title:': ['salt stress rep. 4'], 'Sample source_name:': ['salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498606': {'Sample_id': 'GSM2498606', 'Sample title:': ['ethanol rep. 3'], 'Sample source_name:': ['ethanol'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498610': {'Sample_id': 'GSM2498610', 'Sample title:': ['ethanol and salt stress rep. 3'], 'Sample source_name:': ['ethanol and salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498601': {'Sample_id': 'GSM2498601', 'Sample title:': ['salt stress rep. 2'], 'Sample source_name:': ['salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498607': {'Sample_id': 'GSM2498607', 'Sample title:': ['ethanol rep. 4'], 'Sample source_name:': ['ethanol'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498608': {'Sample_id': 'GSM2498608', 'Sample title:': ['ethanol and salt stress rep. 1'], 'Sample source_name:': ['ethanol and salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498605': {'Sample_id': 'GSM2498605', 'Sample title:': ['ethanol rep. 2'], 'Sample source_name:': ['ethanol'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498609': {'Sample_id': 'GSM2498609', 'Sample title:': ['ethanol and salt stress rep. 2'], 'Sample source_name:': ['ethanol and salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498600': {'Sample_id': 'GSM2498600', 'Sample title:': ['salt stress rep. 1'], 'Sample source_name:': ['salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498598': {'Sample_id': 'GSM2498598', 'Sample title:': ['water control rep. 3'], 'Sample source_name:': ['water control'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498596': {'Sample_id': 'GSM2498596', 'Sample title:': ['water control rep. 1'], 'Sample source_name:': ['water control'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498599': {'Sample_id': 'GSM2498599', 'Sample title:': ['water control rep. 4'], 'Sample source_name:': ['water control'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
-        'GSM2498602': {'Sample_id': 'GSM2498602', 'Sample title:': ['salt stress rep. 3'], 'Sample source_name:': ['salt stress'], 'Sample characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'Sample extraction protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']}
+        'GSM2498604': {'Sample_id': 'GSM2498604', 'sample_title': ['ethanol rep. 1'], 'sample_source_name': ['ethanol'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498611': {'Sample_id': 'GSM2498611', 'sample_title': ['ethanol and salt stress rep. 4'], 'sample_source_name': ['ethanol and salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498597': {'Sample_id': 'GSM2498597', 'sample_title': ['water control rep. 2'], 'sample_source_name': ['water control'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498603': {'Sample_id': 'GSM2498603', 'sample_title': ['salt stress rep. 4'], 'sample_source_name': ['salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498606': {'Sample_id': 'GSM2498606', 'sample_title': ['ethanol rep. 3'], 'sample_source_name': ['ethanol'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498610': {'Sample_id': 'GSM2498610', 'sample_title': ['ethanol and salt stress rep. 3'], 'sample_source_name': ['ethanol and salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498601': {'Sample_id': 'GSM2498601', 'sample_title': ['salt stress rep. 2'], 'sample_source_name': ['salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498607': {'Sample_id': 'GSM2498607', 'sample_title': ['ethanol rep. 4'], 'sample_source_name': ['ethanol'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498608': {'Sample_id': 'GSM2498608', 'sample_title': ['ethanol and salt stress rep. 1'], 'sample_source_name': ['ethanol and salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498605': {'Sample_id': 'GSM2498605', 'sample_title': ['ethanol rep. 2'], 'sample_source_name': ['ethanol'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498609': {'Sample_id': 'GSM2498609', 'sample_title': ['ethanol and salt stress rep. 2'], 'sample_source_name': ['ethanol and salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498600': {'Sample_id': 'GSM2498600', 'sample_title': ['salt stress rep. 1'], 'sample_source_name': ['salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498598': {'Sample_id': 'GSM2498598', 'sample_title': ['water control rep. 3'], 'sample_source_name': ['water control'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498596': {'Sample_id': 'GSM2498596', 'sample_title': ['water control rep. 1'], 'sample_source_name': ['water control'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498599': {'Sample_id': 'GSM2498599', 'sample_title': ['water control rep. 4'], 'sample_source_name': ['water control'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']},
+        'GSM2498602': {'Sample_id': 'GSM2498602', 'sample_title': ['salt stress rep. 3'], 'sample_source_name': ['salt stress'], 'sample_characteristicts': ['ecotype: Col-0', 'tissue: whole plant'], 'sample_extraction_protocol': ['RNA was extracted from four biological replicates with the Plant RNA Reagent (Thermo Fisher Scientific) according to the manufacturer’s instructions']}
     }
 
     print("--- Testing GSE95202_extractor ---")
@@ -2021,7 +1987,7 @@ def GSE24177_extractor(sample_metadata: dict) -> dict:
 
     The schema requires 'tissue', 'treatment', and 'medium'.
 
-    - 'tissue' and 'treatment' are extracted from the 'Sample characteristicts' field.
+    - 'tissue' and 'treatment' are extracted from the 'sample_characteristicts' field.
     - 'medium' is inferred from the study's overall design (provided in the problem
       description as 'study_metadata', indicating plants were grown in soil),
       and is constant across all samples in this study.
@@ -2041,9 +2007,9 @@ def GSE24177_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # Extract 'tissue' and 'treatment' from the 'Sample characteristicts' list.
+    # Extract 'tissue' and 'treatment' from the 'sample_characteristicts' list.
     # This field contains key-value pairs separated by ': '.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     for char_string in characteristics:
         # Split only on the first occurrence of ': ' to handle potential colons in values
@@ -2082,7 +2048,7 @@ def GSE11758_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have a 'Sample source_name:' key.
+                                Expected to have a 'sample_source_name' key.
 
     Returns:
         dict: A dictionary conforming to the specified schema, containing 'tissue',
@@ -2091,13 +2057,13 @@ def GSE11758_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Based on the study metadata and consistent 'Sample source_name:',
+    # Based on the study metadata and consistent 'sample_source_name',
     # the tissue is always "Arabidopsis mature leaves".
     extracted_data["tissue"] = "Arabidopsis mature leaves"
 
-    # Get the 'Sample source_name:' which contains details about treatment and medium.
+    # Get the 'sample_source_name' which contains details about treatment and medium.
     # Use .get() with a default to handle cases where the key might be missing or empty.
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
 
     # Initialize treatment and medium
     treatment_list = []
@@ -2147,7 +2113,7 @@ def GSE11758_extractor(sample_metadata: dict) -> dict:
             medium_str = "Air"
 
     else:
-        # Fallback for any other unexpected 'Sample source_name:' format
+        # Fallback for any other unexpected 'sample_source_name' format
         treatment_list.append("unspecified treatment")
         medium_str = "unspecified medium"
 
@@ -2176,10 +2142,10 @@ def GSE4760_extractor(sample_metadata: dict) -> dict:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
                                 Example:
                                 {'Sample_id': 'GSM107586',
-                                 'Sample title:': ['Wt_seedling_HS44_rep1'],
-                                 'Sample source_name:': ['seedling, heat shock 37C 1h, recover 24C 2d, and heat shock 44C 45 min'],
-                                 'Sample characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 5-d old', 'Tissue: whole seedling'],
-                                 'Sample extraction protocol': ''}
+                                 'sample_title': ['Wt_seedling_HS44_rep1'],
+                                 'sample_source_name': ['seedling, heat shock 37C 1h, recover 24C 2d, and heat shock 44C 45 min'],
+                                 'sample_characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 5-d old', 'Tissue: whole seedling'],
+                                 'sample_extraction_protocol': ''}
 
     Returns:
         dict: A dictionary formatted according to the specified schema, containing
@@ -2188,26 +2154,26 @@ def GSE4760_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list,
+    # The tissue information is found within the 'sample_characteristicts' list,
     # typically in an item starting with "Tissue: ".
     tissue = "unknown" # Default value if not found
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('Tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
     extracted_data['tissue'] = tissue
 
     # 2. Extract 'treatment'
-    # The treatment information is primarily in 'Sample source_name:'.
+    # The treatment information is primarily in 'sample_source_name'.
     # This field often contains a descriptive string that needs parsing.
     treatments = []
-    source_name_str = "" # Initialize to handle cases where 'Sample source_name:' might be missing or empty
-    if 'Sample source_name:' in sample_metadata and \
-       isinstance(sample_metadata['Sample source_name:'], list) and \
-       sample_metadata['Sample source_name:']:
+    source_name_str = "" # Initialize to handle cases where 'sample_source_name' might be missing or empty
+    if 'sample_source_name' in sample_metadata and \
+       isinstance(sample_metadata['sample_source_name'], list) and \
+       sample_metadata['sample_source_name']:
         
-        source_name_str = sample_metadata['Sample source_name:'][0]
+        source_name_str = sample_metadata['sample_source_name'][0]
         
         # Remove "seedling, " prefix if present, as "seedling" refers to the sample type/tissue, not a treatment.
         # This also handles cases like "seedling, control" or "seedling, heat shock".
@@ -2268,8 +2234,8 @@ def GSE71001_extractor(sample_metadata: dict) -> dict:
         "medium": "hydroponic medium" # Derived from study_metadata['overall_design'] which states "hydroponically grown seedligs"
     }
 
-    # Access the 'Sample characteristicts' list, which contains most of the required info
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # Access the 'sample_characteristicts' list, which contains most of the required info
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     # Extract 'tissue'
     # Iterate through characteristics to find the 'tissue' entry
@@ -2306,10 +2272,10 @@ if __name__ == '__main__':
     }
 
     samples_metadata = {
-        'GSM1824886': {'Sample_id': 'GSM1824886', 'Sample title:': ['KO_3 Biological Rep 3'], 'Sample source_name:': ['KO_seedling_NaCl_3 h'], 'Sample characteristicts': ['ecotype background: Col-0', 'genotype/variation: bzip1/bzip53 knockout', 'age: 6-week-old', 'treated with: 150 mM NaCl for 3hrs', 'tissue: seedling roots'], 'Sample extraction protocol': ['RNAeasy, quiagen kit']},
-        'GSM1824870': {'Sample_id': 'GSM1824870', 'Sample title:': ['WT_1 Biological Rep 2'], 'Sample source_name:': ['WT_seedling_NaCl_1 h'], 'Sample characteristicts': ['ecotype background: Col-0', 'genotype/variation: wild type', 'age: 6-week-old', 'treated with: 150 mM NaCl for 1hr', 'tissue: seedling roots'], 'Sample extraction protocol': ['RNAeasy, quiagen kit']},
-        'GSM1824878': {'Sample_id': 'GSM1824878', 'Sample title:': ['KO_C Biological Rep 1'], 'Sample source_name:': ['KO_seedling_NaCl_Control'], 'Sample characteristicts': ['ecotype background: Col-0', 'genotype/variation: bzip1/bzip53 knockout', 'age: 6-week-old', 'tissue: seedling roots'], 'Sample extraction protocol': ['RNAeasy, quiagen kit']},
-        'GSM1824866': {'Sample_id': 'GSM1824866', 'Sample title:': ['WT_C Biological Rep 1'], 'Sample source_name:': ['WT_seedling_NaCl_Control'], 'Sample characteristicts': ['ecotype background: Col-0', 'genotype/variation: wild type', 'age: 6-week-old', 'tissue: seedling roots'], 'Sample extraction protocol': ['RNAeasy, quiagen kit']}
+        'GSM1824886': {'Sample_id': 'GSM1824886', 'sample_title': ['KO_3 Biological Rep 3'], 'sample_source_name': ['KO_seedling_NaCl_3 h'], 'sample_characteristicts': ['ecotype background: Col-0', 'genotype/variation: bzip1/bzip53 knockout', 'age: 6-week-old', 'treated with: 150 mM NaCl for 3hrs', 'tissue: seedling roots'], 'sample_extraction_protocol': ['RNAeasy, quiagen kit']},
+        'GSM1824870': {'Sample_id': 'GSM1824870', 'sample_title': ['WT_1 Biological Rep 2'], 'sample_source_name': ['WT_seedling_NaCl_1 h'], 'sample_characteristicts': ['ecotype background: Col-0', 'genotype/variation: wild type', 'age: 6-week-old', 'treated with: 150 mM NaCl for 1hr', 'tissue: seedling roots'], 'sample_extraction_protocol': ['RNAeasy, quiagen kit']},
+        'GSM1824878': {'Sample_id': 'GSM1824878', 'sample_title': ['KO_C Biological Rep 1'], 'sample_source_name': ['KO_seedling_NaCl_Control'], 'sample_characteristicts': ['ecotype background: Col-0', 'genotype/variation: bzip1/bzip53 knockout', 'age: 6-week-old', 'tissue: seedling roots'], 'sample_extraction_protocol': ['RNAeasy, quiagen kit']},
+        'GSM1824866': {'Sample_id': 'GSM1824866', 'sample_title': ['WT_C Biological Rep 1'], 'sample_source_name': ['WT_seedling_NaCl_Control'], 'sample_characteristicts': ['ecotype background: Col-0', 'genotype/variation: wild type', 'age: 6-week-old', 'tissue: seedling roots'], 'sample_extraction_protocol': ['RNAeasy, quiagen kit']}
     }
 
     print("--- Extracted Data for GSM1824886 (Treated Sample) ---")
@@ -2345,10 +2311,10 @@ def GSE12619_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The 'Sample characteristicts' and 'Sample source_name:' fields consistently
+    # The 'sample_characteristicts' and 'sample_source_name' fields consistently
     # mention "seedlings" as the biological material.
     # Example: 'Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'
-    characteristics = sample_metadata.get('Sample characteristicts', [''])[0]
+    characteristics = sample_metadata.get('sample_characteristicts', [''])[0]
     if "seedlings" in characteristics.lower():
         extracted_data['tissue'] = "seedlings"
     else:
@@ -2356,9 +2322,9 @@ def GSE12619_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = "unspecified"
 
     # 2. Extract 'treatment'
-    # The 'Sample source_name:' field explicitly states the treatment condition.
+    # The 'sample_source_name' field explicitly states the treatment condition.
     # Examples: 'til1-1 seedlings heat stress rep1', 'Col-0 seedlings control condition rep1'
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
     treatment_list = []
     if "heat stress" in source_name.lower():
         treatment_list.append("heat stress")
@@ -2388,14 +2354,14 @@ if __name__ == '__main__':
 
     # Example samples metadata
     samples_metadata = {
-        'GSM315983': {'Sample_id': 'GSM315983', 'Sample title:': ['til1-1_37C_rep1'], 'Sample source_name:': ['til1-1 seedlings heat stress rep1'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']},
-        'GSM315973': {'Sample_id': 'GSM315973', 'Sample title:': ['Col-0_37C_rep2'], 'Sample source_name:': ['Col-0 seedlings heat stress rep2'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']},
-        'GSM315970': {'Sample_id': 'GSM315970', 'Sample title:': ['Col-0_22C_rep1'], 'Sample source_name:': ['Col-0 seedlings control condition rep1'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']},
-        'GSM315981': {'Sample_id': 'GSM315981', 'Sample title:': ['til1-1_22C_rep1'], 'Sample source_name:': ['til1-1 seedlings control condition rep1'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']},
-        'GSM315971': {'Sample_id': 'GSM315971', 'Sample title:': ['Col-0_22C_rep2'], 'Sample source_name:': ['Col-0 seedlings control condition rep2'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']},
-        'GSM315982': {'Sample_id': 'GSM315982', 'Sample title:': ['til1-1_22C_rep2'], 'Sample source_name:': ['til1-1 seedlings control condition rep2'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']},
-        'GSM315972': {'Sample_id': 'GSM315972', 'Sample title:': ['Col-0_37C_rep1'], 'Sample source_name:': ['Col-0 seedlings heat stress rep1'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']},
-        'GSM315984': {'Sample_id': 'GSM315984', 'Sample title:': ['til1-1_37C_rep2'], 'Sample source_name:': ['til1-1 seedlings heat stress rep2'], 'Sample characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'Sample extraction protocol': ['Qiagen RNA extraction kit']}
+        'GSM315983': {'Sample_id': 'GSM315983', 'sample_title': ['til1-1_37C_rep1'], 'sample_source_name': ['til1-1 seedlings heat stress rep1'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']},
+        'GSM315973': {'Sample_id': 'GSM315973', 'sample_title': ['Col-0_37C_rep2'], 'sample_source_name': ['Col-0 seedlings heat stress rep2'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']},
+        'GSM315970': {'Sample_id': 'GSM315970', 'sample_title': ['Col-0_22C_rep1'], 'sample_source_name': ['Col-0 seedlings control condition rep1'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']},
+        'GSM315981': {'Sample_id': 'GSM315981', 'sample_title': ['til1-1_22C_rep1'], 'sample_source_name': ['til1-1 seedlings control condition rep1'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']},
+        'GSM315971': {'Sample_id': 'GSM315971', 'sample_title': ['Col-0_22C_rep2'], 'sample_source_name': ['Col-0 seedlings control condition rep2'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']},
+        'GSM315982': {'Sample_id': 'GSM315982', 'sample_title': ['til1-1_22C_rep2'], 'sample_source_name': ['til1-1 seedlings control condition rep2'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']},
+        'GSM315972': {'Sample_id': 'GSM315972', 'sample_title': ['Col-0_37C_rep1'], 'sample_source_name': ['Col-0 seedlings heat stress rep1'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis wild type ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']},
+        'GSM315984': {'Sample_id': 'GSM315984', 'sample_title': ['til1-1_37C_rep2'], 'sample_source_name': ['til1-1 seedlings heat stress rep2'], 'sample_characteristicts': ['Seven days old seedlings of Arabidopsis mutant of til1-1 ecotype Columbia were used'], 'sample_extraction_protocol': ['Qiagen RNA extraction kit']}
     }
 
     print("--- Testing with individual samples ---")
@@ -2432,7 +2398,7 @@ def GSE37118_extractor(sample_metadata: dict) -> dict:
     following a specific JSON schema.
 
     The schema requires 'tissue', 'treatment', and 'medium'.
-    - 'tissue' and 'treatment' are extracted from the 'Sample characteristicts' field.
+    - 'tissue' and 'treatment' are extracted from the 'sample_characteristicts' field.
     - 'medium' is inferred as "MS medium" (Murashige and Skoog medium), a common
       growth medium for Arabidopsis thaliana seedlings, as it is not explicitly
       stated in the provided metadata but is a required field in the schema.
@@ -2446,8 +2412,8 @@ def GSE37118_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # Get the 'Sample characteristicts' list, defaulting to an empty list if not found
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # Get the 'sample_characteristicts' list, defaulting to an empty list if not found
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     # 1. Extract 'tissue'
     tissue = None
@@ -2514,9 +2480,9 @@ def GSE35258_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # 1. Extract 'tissue' and 'treatment' from 'Sample characteristicts'
+    # 1. Extract 'tissue' and 'treatment' from 'sample_characteristicts'
     # This field is a list of strings, where each string is in "key: value" format.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     for item in characteristics:
         if ': ' in item:
             key, value = item.split(': ', 1)
@@ -2527,11 +2493,11 @@ def GSE35258_extractor(sample_metadata: dict) -> dict:
                 # In this dataset, it appears as a single string, so we wrap it in a list.
                 extracted_data['treatment'] = [value]
 
-    # 2. Extract 'medium' based on the water potential (MPa) mentioned in 'Sample title:'
+    # 2. Extract 'medium' based on the water potential (MPa) mentioned in 'sample_title'
     # The 'overall_design' in study_metadata indicates the mapping:
     # - "-1.2 MPa" corresponds to "PEG-infused agar plates" (stress condition)
     # - "-0.25 MPa" corresponds to "agar plates of control media" (control condition)
-    sample_title = sample_metadata.get('Sample title:', [''])[0] # Get the first string from the list
+    sample_title = sample_metadata.get('sample_title', [''])[0] # Get the first string from the list
 
     if "-1.2 MPa" in sample_title:
         extracted_data['medium'] = "PEG-infused agar plates"
@@ -2573,9 +2539,9 @@ def GSE9415_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract Tissue
-    # The 'Sample source_name:' field consistently contains the tissue information.
+    # The 'sample_source_name' field consistently contains the tissue information.
     # Example: 'Arabidopsis shoots exposed to control conditions'
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
     if source_name:
         # Assuming the format "Arabidopsis [tissue] exposed to..."
         # We can extract the word immediately following "Arabidopsis".
@@ -2589,7 +2555,7 @@ def GSE9415_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = "unspecified"
 
     # 2. Extract Treatment
-    # The 'Sample source_name:' also contains the treatment information.
+    # The 'sample_source_name' also contains the treatment information.
     # Examples: 'control conditions', 'heat conditions', 'drought conditions',
     # 'combined drought and heat conditions'
     treatment_list = []
@@ -2654,8 +2620,8 @@ def GSE79681_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample characteristicts',
-                                'Sample source_name:', and 'Sample title:'.
+                                Expected keys include 'sample_characteristicts',
+                                'sample_source_name', and 'sample_title'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema,
@@ -2664,16 +2630,16 @@ def GSE79681_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # 'Sample characteristicts' is a list of strings, e.g., ['ecotype: Columbia-0', 'tissue: leaf']
+    # 'sample_characteristicts' is a list of strings, e.g., ['ecotype: Columbia-0', 'tissue: leaf']
     extracted_data['tissue'] = "unknown" # Default value if not found
-    for characteristic in sample_metadata.get('Sample characteristicts', []):
+    for characteristic in sample_metadata.get('sample_characteristicts', []):
         if characteristic.startswith('tissue:'):
             extracted_data['tissue'] = characteristic.split(':', 1)[1].strip()
             break
 
     # 2. Extract 'medium'
-    # 'medium' is related to 'FC' (Field Capacity) found in 'Sample source_name:'
-    source_name_str = sample_metadata.get('Sample source_name:', [''])[0]
+    # 'medium' is related to 'FC' (Field Capacity) found in 'sample_source_name'
+    source_name_str = sample_metadata.get('sample_source_name', [''])[0]
     extracted_data['medium'] = "unknown" # Default value if not found
     
     # Use regex to find patterns like "100% FC" or "40% FC"
@@ -2682,7 +2648,7 @@ def GSE79681_extractor(sample_metadata: dict) -> dict:
         extracted_data['medium'] = match.group(1)
 
     # 3. Extract 'treatment'
-    # This is a list of strings, derived primarily from 'Sample source_name:'
+    # This is a list of strings, derived primarily from 'sample_source_name'
     treatments = []
 
     # Check for pathogen infections
@@ -2729,20 +2695,20 @@ def GSE15577_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is consistently found in the 'Sample source_name:' field.
+    # The tissue information is consistently found in the 'sample_source_name' field.
     # Example: 'vegetative rosettes, wildtype, watered'
     # We extract the first part before the first comma.
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
     if source_name:
         tissue_parts = source_name.split(',')
         extracted_data['tissue'] = tissue_parts[0].strip()
     else:
-        # Fallback if 'Sample source_name:' is missing or empty, though unlikely for this dataset.
+        # Fallback if 'sample_source_name' is missing or empty, though unlikely for this dataset.
         extracted_data['tissue'] = "unspecified"
 
     # 2. Extract 'treatment'
     # Treatments are 'watered' (control) or 'water deficit'/'drought'.
-    # This information is also found in 'Sample source_name:'.
+    # This information is also found in 'sample_source_name'.
     treatment_list = []
     lower_source_name = source_name.lower()
 
@@ -2768,18 +2734,18 @@ def GSE15577_extractor(sample_metadata: dict) -> dict:
 if __name__ == '__main__':
     # Example usage with the provided samples_metadata
     samples_metadata = {
-        'GSM389767': {'Sample_id': 'GSM389767', 'Sample title:': ['rosettes_wildtype_watered_rep2'], 'Sample source_name:': ['vegetative rosettes, wildtype, watered'], 'Sample characteristicts': ['cultivar: Columbia-0'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389768': {'Sample_id': 'GSM389768', 'Sample title:': ['rosettes_atx_watered_rep1'], 'Sample source_name:': ['vegetative rosettes, atx, watered'], 'Sample characteristicts': ['mutant: ATX1'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389776': {'Sample_id': 'GSM389776', 'Sample title:': ['rosettes_myoox_drought_rep1'], 'Sample source_name:': ['vegetative rosettes, myoox, water deficit'], 'Sample characteristicts': ['mutant: MYO-OX'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389775': {'Sample_id': 'GSM389775', 'Sample title:': ['rosettes_atx_drought_rep2'], 'Sample source_name:': ['vegetative rosettes, atx, water deficit'], 'Sample characteristicts': ['mutant: ATX1'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389770': {'Sample_id': 'GSM389770', 'Sample title:': ['rosettes_myoox_watered_rep1'], 'Sample source_name:': ['vegetative rosettes, myoox, watered'], 'Sample characteristicts': ['mutant: MYO-OX'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389772': {'Sample_id': 'GSM389772', 'Sample title:': ['rosettes_wildtype_drought_rep1'], 'Sample source_name:': ['vegetative rosettes, wildtype, water deficit'], 'Sample characteristicts': ['cultivar: Columbia-0'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389774': {'Sample_id': 'GSM389774', 'Sample title:': ['rosettes_atx_drought_rep1'], 'Sample source_name:': ['vegetative rosettes, atx, water deficit'], 'Sample characteristicts': ['mutant: ATX1'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389769': {'Sample_id': 'GSM389769', 'Sample title:': ['rosettes_atx_watered_rep2'], 'Sample source_name:': ['vegetative rosettes, atx, watered'], 'Sample characteristicts': ['mutant: ATX1'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389773': {'Sample_id': 'GSM389773', 'Sample title:': ['rosettes_wildtype_drought_rep2'], 'Sample source_name:': ['vegetative rosettes, wildtype, water deficit'], 'Sample characteristicts': ['cultivar: Columbia-0'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389766': {'Sample_id': 'GSM389766', 'Sample title:': ['rosettes_wildtype_watered_rep1'], 'Sample source_name:': ['vegetative rosettes, wildtype, watered'], 'Sample characteristicts': ['cultivar: Columbia-0'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389771': {'Sample_id': 'GSM389771', 'Sample title:': ['rosettes_myoox_watered_rep2'], 'Sample source_name:': ['vegetative rosettes, myoox, watered'], 'Sample characteristicts': ['mutant: MYO-OX'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM389777': {'Sample_id': 'GSM389777', 'Sample title:': ['rosettes_myoox_drought_rep2'], 'Sample source_name:': ['vegetative rosettes, myoox, water deficit'], 'Sample characteristicts': ['mutant: MYO-OX'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]}
+        'GSM389767': {'Sample_id': 'GSM389767', 'sample_title': ['rosettes_wildtype_watered_rep2'], 'sample_source_name': ['vegetative rosettes, wildtype, watered'], 'sample_characteristicts': ['cultivar: Columbia-0'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389768': {'Sample_id': 'GSM389768', 'sample_title': ['rosettes_atx_watered_rep1'], 'sample_source_name': ['vegetative rosettes, atx, watered'], 'sample_characteristicts': ['mutant: ATX1'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389776': {'Sample_id': 'GSM389776', 'sample_title': ['rosettes_myoox_drought_rep1'], 'sample_source_name': ['vegetative rosettes, myoox, water deficit'], 'sample_characteristicts': ['mutant: MYO-OX'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389775': {'Sample_id': 'GSM389775', 'sample_title': ['rosettes_atx_drought_rep2'], 'sample_source_name': ['vegetative rosettes, atx, water deficit'], 'sample_characteristicts': ['mutant: ATX1'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389770': {'Sample_id': 'GSM389770', 'sample_title': ['rosettes_myoox_watered_rep1'], 'sample_source_name': ['vegetative rosettes, myoox, watered'], 'sample_characteristicts': ['mutant: MYO-OX'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389772': {'Sample_id': 'GSM389772', 'sample_title': ['rosettes_wildtype_drought_rep1'], 'sample_source_name': ['vegetative rosettes, wildtype, water deficit'], 'sample_characteristicts': ['cultivar: Columbia-0'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389774': {'Sample_id': 'GSM389774', 'sample_title': ['rosettes_atx_drought_rep1'], 'sample_source_name': ['vegetative rosettes, atx, water deficit'], 'sample_characteristicts': ['mutant: ATX1'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389769': {'Sample_id': 'GSM389769', 'sample_title': ['rosettes_atx_watered_rep2'], 'sample_source_name': ['vegetative rosettes, atx, watered'], 'sample_characteristicts': ['mutant: ATX1'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389773': {'Sample_id': 'GSM389773', 'sample_title': ['rosettes_wildtype_drought_rep2'], 'sample_source_name': ['vegetative rosettes, wildtype, water deficit'], 'sample_characteristicts': ['cultivar: Columbia-0'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389766': {'Sample_id': 'GSM389766', 'sample_title': ['rosettes_wildtype_watered_rep1'], 'sample_source_name': ['vegetative rosettes, wildtype, watered'], 'sample_characteristicts': ['cultivar: Columbia-0'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389771': {'Sample_id': 'GSM389771', 'sample_title': ['rosettes_myoox_watered_rep2'], 'sample_source_name': ['vegetative rosettes, myoox, watered'], 'sample_characteristicts': ['mutant: MYO-OX'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM389777': {'Sample_id': 'GSM389777', 'sample_title': ['rosettes_myoox_drought_rep2'], 'sample_source_name': ['vegetative rosettes, myoox, water deficit'], 'sample_characteristicts': ['mutant: MYO-OX'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]}
     }
 
     print("Extracted schema for each sample:")
@@ -2818,9 +2784,9 @@ def GSE18666_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found in 'Sample characteristicts'.
-    # Example: 'Sample characteristicts': ['tissue: seedling']
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # The tissue information is found in 'sample_characteristicts'.
+    # Example: 'sample_characteristicts': ['tissue: seedling']
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue_info = next((s for s in characteristics if s.startswith('tissue:')), None)
     if tissue_info:
         extracted_data['tissue'] = tissue_info.split(': ')[1].strip()
@@ -2834,10 +2800,10 @@ def GSE18666_extractor(sample_metadata: dict) -> dict:
     extracted_data['medium'] = "in vitro"
 
     # 3. Extract 'treatment'
-    # Treatment information is derived from the 'Sample title:'.
+    # Treatment information is derived from the 'sample_title'.
     # Examples: 'Mock, 2 days recovery', 'Heat, no recovery'
     treatments = []
-    sample_title = sample_metadata.get('Sample title:', [''])[0] # Get the first string from the list
+    sample_title = sample_metadata.get('sample_title', [''])[0] # Get the first string from the list
 
     # Determine primary stress/condition
     if "Heat" in sample_title:
@@ -2878,11 +2844,11 @@ def GSE65046_extractor(sample_metadata: dict) -> dict:
     extracted_data["tissue"] = "leaves"
 
     # 2. Extract 'treatment'
-    # The treatment information is found within the 'Sample characteristicts' list.
+    # The treatment information is found within the 'sample_characteristicts' list.
     # Each item in this list is a string, and one of them starts with "treatment:".
     treatments = []
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str) and characteristic.startswith('treatment:'):
                 # Extract the value after "treatment: " and strip any whitespace
                 treatment_value = characteristic.split(':', 1)[1].strip()
@@ -2917,9 +2883,9 @@ def GSE18624_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found in 'Sample characteristicts' list.
-    # Example: 'Sample characteristicts': ['tissue: whole seedlings', ...]
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # The tissue information is found in 'sample_characteristicts' list.
+    # Example: 'sample_characteristicts': ['tissue: whole seedlings', ...]
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = None
     for char_str in characteristics:
         if char_str.lower().startswith('tissue:'):
@@ -2928,12 +2894,12 @@ def GSE18624_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue if tissue else "unknown" # Default if not found
 
     # 2. Extract 'treatment'
-    # Treatments are derived from the 'Sample title:' or 'Sample source_name:'
+    # Treatments are derived from the 'sample_title' or 'sample_source_name'
     # and relate to temperature and duration.
-    # Example: 'Sample title:': ['arp6-10  2h at 27 ºC  rep2']
-    # Example: 'Sample title:': ['Col-0 12 ºC rep1']
+    # Example: 'sample_title': ['arp6-10  2h at 27 ºC  rep2']
+    # Example: 'sample_title': ['Col-0 12 ºC rep1']
     treatments = []
-    sample_title = sample_metadata.get('Sample title:', [''])[0] # Get the first title string
+    sample_title = sample_metadata.get('sample_title', [''])[0] # Get the first title string
 
     # Prioritize specific temperature/duration patterns
     if '2h at 27 ºC' in sample_title:
@@ -2944,7 +2910,7 @@ def GSE18624_extractor(sample_metadata: dict) -> dict:
         treatments.append('12 ºC')
     else:
         # Fallback to source_name if title doesn't match, or if more general parsing is needed
-        sample_source_name = sample_metadata.get('Sample source_name:', [''])[0]
+        sample_source_name = sample_metadata.get('sample_source_name', [''])[0]
         if '2h' in sample_source_name and '27 ºC' in sample_source_name:
             treatments.append('27 ºC for 2 hours')
         elif '24h' in sample_source_name and '27 ºC' in sample_source_name:
@@ -2990,20 +2956,20 @@ def GSE44053_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within 'Sample characteristicts'.
+    # The tissue information is found within 'sample_characteristicts'.
     tissue = "Not specified" # Default value if tissue information is not found
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str) and characteristic.startswith('tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
     extracted_data['tissue'] = tissue
 
     # 2. Extract 'treatment'
-    # Treatment information is derived from 'Sample title:' and 'Sample source_name:'.
+    # Treatment information is derived from 'sample_title' and 'sample_source_name'.
     treatment_list = []
-    sample_title = sample_metadata.get('Sample title:', [''])[0]
-    sample_source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    sample_title = sample_metadata.get('sample_title', [''])[0]
+    sample_source_name = sample_metadata.get('sample_source_name', [''])[0]
 
     # Check for heat stress
     if "HeatStressed" in sample_title or "Heat-stresed" in sample_source_name:
@@ -3020,7 +2986,7 @@ def GSE44053_extractor(sample_metadata: dict) -> dict:
 
     # 3. Extract 'medium'
     # The growth medium is not explicitly stated in the provided study or sample metadata.
-    # The 'Sample extraction protocol' describes an extraction buffer, not a growth medium.
+    # The 'sample_extraction_protocol' describes an extraction buffer, not a growth medium.
     # Given that the schema requires this field and it's for Arabidopsis seedlings,
     # a "Not Specified" is a reasonable and informative default.
     extracted_data['medium'] = "Not Specified"
@@ -3055,9 +3021,9 @@ def GSE72949_extractor(sample_metadata: dict) -> dict:
         "medium": "Not Specified"  # Inferred for Arabidopsis seedlings, as not explicitly stated in metadata
     }
 
-    # Extract information from 'Sample characteristicts' list
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for char_str in sample_metadata['Sample characteristicts']:
+    # Extract information from 'sample_characteristicts' list
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for char_str in sample_metadata['sample_characteristicts']:
             if isinstance(char_str, str):
                 # Extract 'tissue'
                 if char_str.startswith('tissue:'):
@@ -3090,9 +3056,9 @@ if __name__ == '__main__':
     samples_metadata = {
         'GSM1875148': {
             'Sample_id': 'GSM1875148',
-            'Sample title:': ['Col-0 4h primed seedlings'],
-            'Sample source_name:': ['Wild-type Col-0 seedling'],
-            'Sample characteristicts': [
+            'sample_title': ['Col-0 4h primed seedlings'],
+            'sample_source_name': ['Wild-type Col-0 seedling'],
+            'sample_characteristicts': [
                 'ecotype: Col-0',
                 'genotype/variation: Wild-type',
                 'age: 5-days-old',
@@ -3100,13 +3066,13 @@ if __name__ == '__main__':
                 'time of harvest: 4hr',
                 'tissue: seedling'
             ],
-            'Sample extraction protocol': ['RNeasy Plant Mini Kit']
+            'sample_extraction_protocol': ['RNeasy Plant Mini Kit']
         },
         'GSM1875149': {
             'Sample_id': 'GSM1875149',
-            'Sample title:': ['Col-0 4h unprimed seedlings'],
-            'Sample source_name:': ['Wild-type Col-0 seedling'],
-            'Sample characteristicts': [
+            'sample_title': ['Col-0 4h unprimed seedlings'],
+            'sample_source_name': ['Wild-type Col-0 seedling'],
+            'sample_characteristicts': [
                 'ecotype: Col-0',
                 'genotype/variation: Wild-type',
                 'age: 5-days-old',
@@ -3114,13 +3080,13 @@ if __name__ == '__main__':
                 'time of harvest: 4hr',
                 'tissue: seedling'
             ],
-            'Sample extraction protocol': ['RNeasy Plant Mini Kit']
+            'sample_extraction_protocol': ['RNeasy Plant Mini Kit']
         },
         'GSM1875154': {
             'Sample_id': 'GSM1875154',
-            'Sample title:': ['Col-0 48h primed seedlings'],
-            'Sample source_name:': ['Wild-type Col-0 seedling'],
-            'Sample characteristicts': [
+            'sample_title': ['Col-0 48h primed seedlings'],
+            'sample_source_name': ['Wild-type Col-0 seedling'],
+            'sample_characteristicts': [
                 'ecotype: Col-0',
                 'genotype/variation: Wild-type',
                 'age: 5-days-old',
@@ -3128,7 +3094,7 @@ if __name__ == '__main__':
                 'time of harvest: 48hr',
                 'tissue: seedling'
             ],
-            'Sample extraction protocol': ['RNeasy Plant Mini Kit']
+            'sample_extraction_protocol': ['RNeasy Plant Mini Kit']
         }
     }
 
@@ -3155,12 +3121,12 @@ def GSE16474_extractor(sample_metadata: dict) -> dict:
     Extracts biological experimental information (tissue, treatment, medium)
     from a single sample's metadata dictionary, conforming to a specified JSON schema.
 
-    The function identifies the relevant information within the 'Sample characteristicts'
+    The function identifies the relevant information within the 'sample_characteristicts'
     list and the overall study context (for medium determination).
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have keys like 'Sample characteristicts'.
+                                Expected to have keys like 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted according to the schema:
@@ -3174,7 +3140,7 @@ def GSE16474_extractor(sample_metadata: dict) -> dict:
     }
 
     # Get the list of characteristics, defaulting to an empty list if the key is missing
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     stress_value = None
 
     # Iterate through characteristics to find 'tissue' and 'stress' information
@@ -3238,16 +3204,16 @@ def GSE20494_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'medium'
     # The growth medium is consistently described in the 'growth protocol'
-    # within 'Sample characteristicts' and in the 'overall_design' of the study.
+    # within 'sample_characteristicts' and in the 'overall_design' of the study.
     # It is "1/2 MS plant medium" (or "half-strength MS plant medium").
     extracted_data["medium"] = "1/2 MS plant medium"
 
     # 3. Extract 'treatment'
-    # This information is found in the 'growth protocol' within 'Sample characteristicts'.
+    # This information is found in the 'growth protocol' within 'sample_characteristicts'.
     # We need to check for the presence of "50 mM NaCl" to identify salt stress treatment.
     treatments = []
-    if "Sample characteristicts" in sample_metadata:
-        for characteristic in sample_metadata["Sample characteristicts"]:
+    if 'sample_characteristicts' in sample_metadata:
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith("growth protocol:"):
                 growth_protocol_str = characteristic.split("growth protocol:")[1].strip()
                 if "50 mM NaCl" in growth_protocol_str:
@@ -3276,7 +3242,7 @@ def GSE2268_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample source_name:'.
+                                Expected keys include 'sample_source_name'.
 
     Returns:
         dict: A dictionary formatted as a JSON instance conforming to the
@@ -3295,10 +3261,10 @@ def GSE2268_extractor(sample_metadata: dict) -> dict:
     extracted_data["tissue"] = "whole plant"
 
     # 2. Extract 'treatment'
-    # This information is found within the 'Sample source_name:' field.
+    # This information is found within the 'sample_source_name' field.
     # Example: 'non-polysomal RNA under non-stress condition' or
     #          'non-polysomal mRNA under dehydration stress'
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
     treatment_list = []
 
     if "under " in source_name:
@@ -3352,17 +3318,17 @@ def GSE44655_extractor(sample_metadata: dict) -> dict:
         "medium": ""
     }
 
-    # Extract 'tissue' from 'Sample characteristicts'
-    # The 'Sample characteristicts' field is a list of strings,
+    # Extract 'tissue' from 'sample_characteristicts'
+    # The 'sample_characteristicts' field is a list of strings,
     # where each string describes a characteristic in a 'key: value' format.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     for item in characteristics:
         if item.startswith('tissue:'):
             # Split by the first colon and strip whitespace from the value
             extracted_data['tissue'] = item.split(':', 1)[1].strip()
             break # Assuming only one 'tissue' entry per sample
 
-    # Extract 'treatment' from 'Sample characteristicts'
+    # Extract 'treatment' from 'sample_characteristicts'
     # The 'condition' characteristic indicates the treatment or control state.
     # We consider "heat shock" as an active treatment/stress.
     # "control" is interpreted as the absence of an applied treatment/stress,
@@ -3398,7 +3364,7 @@ def GSE27549_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have keys like 'Sample characteristicts'.
+                                Expected to have keys like 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema,
@@ -3407,11 +3373,11 @@ def GSE27549_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is consistently found within the 'Sample characteristicts'
+    # The tissue information is consistently found within the 'sample_characteristicts'
     # list, typically as an item formatted like 'tissue: leaf'.
     tissue = "unknown"  # Default value if not found
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 # Extract the value after "tissue:" and strip any leading/trailing whitespace
                 tissue = characteristic.split(':', 1)[1].strip()
@@ -3449,7 +3415,7 @@ def GSE71855_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have keys like 'Sample characteristicts'.
+                                Expected to have keys like 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted as a JSON instance conforming to the schema:
@@ -3463,11 +3429,11 @@ def GSE71855_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # --- Extract Tissue ---
-    # Tissue information is consistently found within the 'Sample characteristicts' list.
+    # Tissue information is consistently found within the 'sample_characteristicts' list.
     # Example: 'tissue: whole plant'
     tissue = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str) and characteristic.startswith('tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
@@ -3478,14 +3444,14 @@ def GSE71855_extractor(sample_metadata: dict) -> dict:
 
     # --- Extract Treatment ---
     # Treatment information is derived from two sources:
-    # 1. The 'treatment:' characteristic in 'Sample characteristicts'.
+    # 1. The 'treatment:' characteristic in 'sample_characteristicts'.
     # 2. The 'condition:' characteristic, which indicates 'salinity stress' (from study_metadata).
     treatments = []
     sample_specific_treatment = None
     sample_condition = None
 
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str):
                 if characteristic.startswith('treatment:'):
                     sample_specific_treatment = characteristic.split(':', 1)[1].strip()
@@ -3536,11 +3502,11 @@ def GSE19603_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is consistently found within the 'Sample characteristicts' list.
+    # The tissue information is consistently found within the 'sample_characteristicts' list.
     # Example: 'tissue: above-ground parts'
     tissue = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str) and characteristic.startswith('tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
@@ -3550,13 +3516,13 @@ def GSE19603_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue if tissue is not None else "above-ground parts"
 
     # 2. Extract 'treatment'
-    # Treatment information is derived from 'Sample title:' and 'Sample source_name:'.
+    # Treatment information is derived from 'sample_title' and 'sample_source_name'.
     # Samples are either 'untreated' (under 'normal conditions') or subjected to 'heat shock'/'heat stress'.
     treatments = set() # Use a set to automatically handle unique treatments
 
     # Safely get and convert relevant strings to lowercase for case-insensitive matching
-    sample_title_str = sample_metadata.get('Sample title:', [''])[0].lower()
-    sample_source_name_str = sample_metadata.get('Sample source_name:', [''])[0].lower()
+    sample_title_str = sample_metadata.get('sample_title', [''])[0].lower()
+    sample_source_name_str = sample_metadata.get('sample_source_name', [''])[0].lower()
 
     # Check for "untreated" or "normal conditions"
     if "untreated" in sample_title_str or "normal conditions" in sample_source_name_str:
@@ -3596,9 +3562,9 @@ def GSE162310_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found in the 'Sample characteristicts' list.
+    # The tissue information is found in the 'sample_characteristicts' list.
     # It's typically in the format 'tissue: [value]'.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = None
     for char_str in characteristics:
         if char_str.startswith('tissue:'):
@@ -3607,7 +3573,7 @@ def GSE162310_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue
 
     # 2. Extract 'treatment'
-    # Treatment information is also in 'Sample characteristicts', under 'protocol:'.
+    # Treatment information is also in 'sample_characteristicts', under 'protocol:'.
     # The schema requires a list of strings. 'unstress condition' should result in an empty list.
     treatments = []
     for char_str in characteristics:
@@ -3644,16 +3610,16 @@ def GSE58616_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Based on the 'Sample source_name:' and 'Sample characteristicts' fields
+    # Based on the 'sample_source_name' and 'sample_characteristicts' fields
     # in the provided samples_metadata, the tissue is consistently "Arabidopsis seedling".
     # The 'overall_design' in study_metadata also confirms "Arabidopsis seedlings".
     extracted_data['tissue'] = "seedling"
 
     # 2. Extract 'treatment'
     # This field should be a list of treatments/stresses applied.
-    # Information is primarily found in 'Sample source_name:'.
+    # Information is primarily found in 'sample_source_name'.
     treatments = []
-    source_name_list = sample_metadata.get('Sample source_name:', [''])
+    source_name_list = sample_metadata.get('sample_source_name', [''])
     source_name = source_name_list[0] if source_name_list else ''
 
     # Check for heat stress treatment
@@ -3687,12 +3653,12 @@ if __name__ == "__main__":
         'overall_design': ['Ten-day-old Arabidopsis seedlings were selected for RNA extraction and hybridization on Affymetrix microarrays. We sought to explore the heat stress response in transcriptome, thus we treat the plants with heat stress.  While in order to identify the interaction between light and temperature signaling pathways in plant , we treat Arabidopsis with heat stress under both light and dark conditions. To that end, our plant tissues are grouped as: HS-LIGHT, HS-DARK,CONTROL-LIGHT,CONTROL-DARK.']
     }
     samples_metadata = {
-        'GSM1415487': {'Sample_id': 'GSM1415487', 'Sample title:': ['light-control, rep3'], 'Sample source_name:': ['Arabidopsis seedling without HS treatment, under light condition'], 'Sample characteristicts': ['cultivar: Col-0', 'developmental stage: 12-day-old seedlings'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM1415489': {'Sample_id': 'GSM1415489', 'Sample title:': ['light-hs, rep2'], 'Sample source_name:': ['Arabidopsis seedling with HS treatment, under light condition'], 'Sample characteristicts': ['cultivar: Col-0', 'developmental stage: 14-day-old seedlings'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM1415485': {'Sample_id': 'GSM1415485', 'Sample title:': ['light-control, rep1'], 'Sample source_name:': ['Arabidopsis seedling without HS treatment, under light condition'], 'Sample characteristicts': ['cultivar: Col-0', 'developmental stage: 10-day-old seedlings'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM1415490': {'Sample_id': 'GSM1415490', 'Sample title:': ['light-hs, rep3'], 'Sample source_name:': ['Arabidopsis seedling with HS treatment, under light condition'], 'Sample characteristicts': ['cultivar: Col-0', 'developmental stage: 15-day-old seedlings'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM1415488': {'Sample_id': 'GSM1415488', 'Sample title:': ['light-hs, rep1'], 'Sample source_name:': ['Arabidopsis seedling with HS treatment, under light condition'], 'Sample characteristicts': ['cultivar: Col-0', 'developmental stage: 13-day-old seedlings'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
-        'GSM1415486': {'Sample_id': 'GSM1415486', 'Sample title:': ['light-control,rep2'], 'Sample source_name:': ['Arabidopsis seedling without HS treatment, under light condition'], 'Sample characteristicts': ['cultivar: Col-0', 'developmental stage: 11-day-old seedlings'], 'Sample extraction protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]}
+        'GSM1415487': {'Sample_id': 'GSM1415487', 'sample_title': ['light-control, rep3'], 'sample_source_name': ['Arabidopsis seedling without HS treatment, under light condition'], 'sample_characteristicts': ['cultivar: Col-0', 'developmental stage: 12-day-old seedlings'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM1415489': {'Sample_id': 'GSM1415489', 'sample_title': ['light-hs, rep2'], 'sample_source_name': ['Arabidopsis seedling with HS treatment, under light condition'], 'sample_characteristicts': ['cultivar: Col-0', 'developmental stage: 14-day-old seedlings'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM1415485': {'Sample_id': 'GSM1415485', 'sample_title': ['light-control, rep1'], 'sample_source_name': ['Arabidopsis seedling without HS treatment, under light condition'], 'sample_characteristicts': ['cultivar: Col-0', 'developmental stage: 10-day-old seedlings'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM1415490': {'Sample_id': 'GSM1415490', 'sample_title': ['light-hs, rep3'], 'sample_source_name': ['Arabidopsis seedling with HS treatment, under light condition'], 'sample_characteristicts': ['cultivar: Col-0', 'developmental stage: 15-day-old seedlings'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM1415488': {'Sample_id': 'GSM1415488', 'sample_title': ['light-hs, rep1'], 'sample_source_name': ['Arabidopsis seedling with HS treatment, under light condition'], 'sample_characteristicts': ['cultivar: Col-0', 'developmental stage: 13-day-old seedlings'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]},
+        'GSM1415486': {'Sample_id': 'GSM1415486', 'sample_title': ['light-control,rep2'], 'sample_source_name': ['Arabidopsis seedling without HS treatment, under light condition'], 'sample_characteristicts': ['cultivar: Col-0', 'developmental stage: 11-day-old seedlings'], 'sample_extraction_protocol': ["Trizol extraction of total RNA was performed according to the manufacturer's instructions."]}
     }
 
     print("--- Extracted Data for Each Sample ---")
@@ -3738,10 +3704,10 @@ def GSE5623_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # It's typically formatted as "Tissue: [Value]".
     tissue = None
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     for char_str in characteristics:
         if char_str.startswith('Tissue:'):
             tissue = char_str.split(':', 1)[1].strip()
@@ -3770,30 +3736,30 @@ def GSE5623_extractor(sample_metadata: dict) -> dict:
 if __name__ == '__main__':
     # Example usage with provided sample metadata
     samples_metadata = {
-        'GSM131309': {'Sample_id': 'GSM131309', 'Sample title:': ['AtGen_6-3121_Saltstress-Roots-0.5h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131316': {'Sample_id': 'GSM131316', 'Sample title:': ['AtGen_6-3312_Saltstress-Shoots-3.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131314': {'Sample_id': 'GSM131314', 'Sample title:': ['AtGen_6-3222_Saltstress-Roots-1.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131326': {'Sample_id': 'GSM131326', 'Sample title:': ['AtGen_6-3522_Saltstress-Roots-12.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131310': {'Sample_id': 'GSM131310', 'Sample title:': ['AtGen_6-3122_Saltstress-Roots-0.5h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131328': {'Sample_id': 'GSM131328', 'Sample title:': ['AtGen_6-3612_Saltstress-Shoots-24.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131308': {'Sample_id': 'GSM131308', 'Sample title:': ['AtGen_6-3112_Saltstress-Shoots-0.5h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131329': {'Sample_id': 'GSM131329', 'Sample title:': ['AtGen_6-3621_Saltstress-Roots-24.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131327': {'Sample_id': 'GSM131327', 'Sample title:': ['AtGen_6-3611_Saltstress-Shoots-24.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131325': {'Sample_id': 'GSM131325', 'Sample title:': ['AtGen_6-3521_Saltstress-Roots-12.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131324': {'Sample_id': 'GSM131324', 'Sample title:': ['AtGen_6-3512_Saltstress-Shoots-12.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131317': {'Sample_id': 'GSM131317', 'Sample title:': ['AtGen_6-3321_Saltstress-Roots-3.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131323': {'Sample_id': 'GSM131323', 'Sample title:': ['AtGen_6-3511_Saltstress-Shoots-12.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131319': {'Sample_id': 'GSM131319', 'Sample title:': ['AtGen_6-3411_Saltstress-Shoots-6.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131322': {'Sample_id': 'GSM131322', 'Sample title:': ['AtGen_6-3422_Saltstress-Roots-6.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131307': {'Sample_id': 'GSM131307', 'Sample title:': ['AtGen_6-3111_Saltstress-Shoots-0.5h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131320': {'Sample_id': 'GSM131320', 'Sample title:': ['AtGen_6-3412_Saltstress-Shoots-6.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131330': {'Sample_id': 'GSM131330', 'Sample title:': ['AtGen_6-3622_Saltstress-Roots-24.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131313': {'Sample_id': 'GSM131313', 'Sample title:': ['AtGen_6-3221_Saltstress-Roots-1.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131311': {'Sample_id': 'GSM131311', 'Sample title:': ['AtGen_6-3211_Saltstress-Shoots-1.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131321': {'Sample_id': 'GSM131321', 'Sample title:': ['AtGen_6-3421_Saltstress-Roots-6.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131318': {'Sample_id': 'GSM131318', 'Sample title:': ['AtGen_6-3322_Saltstress-Roots-3.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'Sample extraction protocol': ''},
-        'GSM131312': {'Sample_id': 'GSM131312', 'Sample title:': ['AtGen_6-3212_Saltstress-Shoots-1.0h_Rep2'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''},
-        'GSM131315': {'Sample_id': 'GSM131315', 'Sample title:': ['AtGen_6-3311_Saltstress-Shoots-3.0h_Rep1'], 'Sample source_name:': ['Col-0'], 'Sample characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'Sample extraction protocol': ''}
+        'GSM131309': {'Sample_id': 'GSM131309', 'sample_title': ['AtGen_6-3121_Saltstress-Roots-0.5h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131316': {'Sample_id': 'GSM131316', 'sample_title': ['AtGen_6-3312_Saltstress-Shoots-3.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131314': {'Sample_id': 'GSM131314', 'sample_title': ['AtGen_6-3222_Saltstress-Roots-1.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131326': {'Sample_id': 'GSM131326', 'sample_title': ['AtGen_6-3522_Saltstress-Roots-12.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131310': {'Sample_id': 'GSM131310', 'sample_title': ['AtGen_6-3122_Saltstress-Roots-0.5h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131328': {'Sample_id': 'GSM131328', 'sample_title': ['AtGen_6-3612_Saltstress-Shoots-24.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131308': {'Sample_id': 'GSM131308', 'sample_title': ['AtGen_6-3112_Saltstress-Shoots-0.5h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131329': {'Sample_id': 'GSM131329', 'sample_title': ['AtGen_6-3621_Saltstress-Roots-24.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131327': {'Sample_id': 'GSM131327', 'sample_title': ['AtGen_6-3611_Saltstress-Shoots-24.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131325': {'Sample_id': 'GSM131325', 'sample_title': ['AtGen_6-3521_Saltstress-Roots-12.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131324': {'Sample_id': 'GSM131324', 'sample_title': ['AtGen_6-3512_Saltstress-Shoots-12.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131317': {'Sample_id': 'GSM131317', 'sample_title': ['AtGen_6-3321_Saltstress-Roots-3.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131323': {'Sample_id': 'GSM131323', 'sample_title': ['AtGen_6-3511_Saltstress-Shoots-12.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131319': {'Sample_id': 'GSM131319', 'sample_title': ['AtGen_6-3411_Saltstress-Shoots-6.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131322': {'Sample_id': 'GSM131322', 'sample_title': ['AtGen_6-3422_Saltstress-Roots-6.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131307': {'Sample_id': 'GSM131307', 'sample_title': ['AtGen_6-3111_Saltstress-Shoots-0.5h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131320': {'Sample_id': 'GSM131320', 'sample_title': ['AtGen_6-3412_Saltstress-Shoots-6.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131330': {'Sample_id': 'GSM131330', 'sample_title': ['AtGen_6-3622_Saltstress-Roots-24.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131313': {'Sample_id': 'GSM131313', 'sample_title': ['AtGen_6-3221_Saltstress-Roots-1.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131311': {'Sample_id': 'GSM131311', 'sample_title': ['AtGen_6-3211_Saltstress-Shoots-1.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131321': {'Sample_id': 'GSM131321', 'sample_title': ['AtGen_6-3421_Saltstress-Roots-6.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131318': {'Sample_id': 'GSM131318', 'sample_title': ['AtGen_6-3322_Saltstress-Roots-3.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Roots'], 'sample_extraction_protocol': ''},
+        'GSM131312': {'Sample_id': 'GSM131312', 'sample_title': ['AtGen_6-3212_Saltstress-Shoots-1.0h_Rep2'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''},
+        'GSM131315': {'Sample_id': 'GSM131315', 'sample_title': ['AtGen_6-3311_Saltstress-Shoots-3.0h_Rep1'], 'sample_source_name': ['Col-0'], 'sample_characteristicts': ['Stock Code: N1092', 'Tissue: Shoots'], 'sample_extraction_protocol': ''}
     }
 
     print("--- Testing with a sample (GSM131309 - Roots) ---")
@@ -3829,15 +3795,15 @@ def GSE37408_extractor(sample_metadata: dict) -> dict:
     following a specific JSON schema.
 
     The schema requires 'tissue', 'treatment', and 'medium'.
-    - 'tissue' is extracted from 'Sample characteristicts' under 'tissue:'.
-    - 'treatment' is extracted from 'Sample characteristicts' under 'agent:'.
+    - 'tissue' is extracted from 'sample_characteristicts' under 'tissue:'.
+    - 'treatment' is extracted from 'sample_characteristicts' under 'agent:'.
       It is returned as a list containing the agent.
     - 'medium' is inferred from the 'agent' as the incubation solution used
       during the treatment, based on the study's experimental design.
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample characteristicts'.
+                                Expected keys include 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema:
@@ -3846,10 +3812,10 @@ def GSE37408_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The 'tissue' information is consistently found within the 'Sample characteristicts' list.
+    # The 'tissue' information is consistently found within the 'sample_characteristicts' list.
     # Example: 'tissue: rosette leaves'
     tissue_found = False
-    for char_str in sample_metadata.get('Sample characteristicts', []):
+    for char_str in sample_metadata.get('sample_characteristicts', []):
         if char_str.startswith('tissue:'):
             extracted_data['tissue'] = char_str.split(':', 1)[1].strip()
             tissue_found = True
@@ -3862,11 +3828,11 @@ def GSE37408_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = 'unknown' 
 
     # 2. Extract 'treatment' and infer 'medium'
-    # The 'agent' characteristic in 'Sample characteristicts' directly corresponds to the treatment.
+    # The 'agent' characteristic in 'sample_characteristicts' directly corresponds to the treatment.
     # The study metadata indicates these agents are used for incubation, defining the medium.
     # Examples: 'agent: mannitol', 'agent: sucrose', 'agent: no sugars'
     agent = None
-    for char_str in sample_metadata.get('Sample characteristicts', []):
+    for char_str in sample_metadata.get('sample_characteristicts', []):
         if char_str.startswith('agent:'):
             agent = char_str.split(':', 1)[1].strip()
             break
@@ -3918,9 +3884,9 @@ def GSE22107_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     tissue = None
-    for char_str in sample_metadata.get('Sample characteristicts', []):
+    for char_str in sample_metadata.get('sample_characteristicts', []):
         if char_str.startswith('tissue:'):
             tissue = char_str.split(':', 1)[1].strip()
             break
@@ -3928,11 +3894,11 @@ def GSE22107_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue if tissue is not None else "unknown"
 
     # 2. Extract 'treatment'
-    # Treatment information is typically found in 'Sample title:' and 'Sample source_name:'.
+    # Treatment information is typically found in 'sample_title' and 'sample_source_name'.
     # We use a set to automatically handle duplicates and then convert to a sorted list.
     treatments = set()
-    sample_title = sample_metadata.get('Sample title:', [''])[0].lower()
-    sample_source_name = sample_metadata.get('Sample source_name:', [''])[0].lower()
+    sample_title = sample_metadata.get('sample_title', [''])[0].lower()
+    sample_source_name = sample_metadata.get('sample_source_name', [''])[0].lower()
 
     # Check for specific treatments/stresses
     if 'mannitol' in sample_title or 'mannitol' in sample_source_name:
@@ -3981,7 +3947,7 @@ def GSE49418_extractor(sample_metadata: dict) -> dict:
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
                                 This dictionary is expected to have keys like
-                                'Sample source_name:', 'Sample characteristicts', etc.
+                                'sample_source_name', 'sample_characteristicts', etc.
 
     Returns:
         dict: A dictionary formatted as a JSON instance conforming to the schema.
@@ -3989,16 +3955,16 @@ def GSE49418_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Based on 'Sample source_name:' (e.g., '46T seedlings without treatment')
-    # and 'Sample characteristicts' (e.g., 'developmental stage: 1-week-old seedlings'),
+    # Based on 'sample_source_name' (e.g., '46T seedlings without treatment')
+    # and 'sample_characteristicts' (e.g., 'developmental stage: 1-week-old seedlings'),
     # 'seedlings' is the consistent tissue type across all samples in this study.
     extracted_data["tissue"] = "seedlings"
 
     # 2. Extract 'treatment'
     treatments = []
-    # The treatment information is found within the 'Sample characteristicts' list.
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    # The treatment information is found within the 'sample_characteristicts' list.
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('treatment:'):
                 # Extract the value after "treatment:" and strip whitespace
                 treatment_value = characteristic.split(':', 1)[1].strip()
@@ -4040,10 +4006,10 @@ def GSE16765_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # Example: 'tissue: leaf'
     tissue_found = False
-    for characteristic in sample_metadata.get('Sample characteristicts', []):
+    for characteristic in sample_metadata.get('sample_characteristicts', []):
         if characteristic.startswith('tissue:'):
             extracted_data['tissue'] = characteristic.split(':', 1)[1].strip()
             tissue_found = True
@@ -4053,13 +4019,13 @@ def GSE16765_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = 'unknown'
 
     # 2. Extract 'treatment'
-    # Treatments (specifically salt stress) are indicated in 'Sample source_name:'
-    # and 'Sample title:'.
+    # Treatments (specifically salt stress) are indicated in 'sample_source_name'
+    # and 'sample_title'.
     # '100mM NaCl' indicates an applied stress, while '0mM NaCl' indicates a control
     # condition (absence of the specific stress). The schema asks for *applied* treatments/stresses.
     treatments = []
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
-    sample_title = sample_metadata.get('Sample title:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
+    sample_title = sample_metadata.get('sample_title', [''])[0]
 
     if '100mM NaCl' in source_name or '100mM NaCl' in sample_title:
         treatments.append('100mM NaCl stress')
@@ -4106,11 +4072,11 @@ def GSE77815_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found in the 'Sample characteristicts' list,
+    # The tissue information is found in the 'sample_characteristicts' list,
     # typically in a string like 'tissue: Rossete leaves'.
     tissue = None
-    if 'Sample characteristicts' in sample_metadata:
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata:
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
@@ -4119,11 +4085,11 @@ def GSE77815_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'treatment'
     # Treatments/stresses are derived from the 'growth condition' in
-    # 'Sample characteristicts'. "normal condition" is interpreted as no specific
+    # 'sample_characteristicts'. "normal condition" is interpreted as no specific
     # treatment/stress applied, resulting in an empty list.
     treatment_list = []
-    if 'Sample characteristicts' in sample_metadata:
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata:
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('growth condition:'):
                 condition = characteristic.split(':', 1)[1].strip()
                 # If the condition is not "normal condition", it's considered a treatment/stress.
@@ -4166,9 +4132,9 @@ def GSE48474_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Tissue information is typically found in 'Sample characteristicts'.
+    # Tissue information is typically found in 'sample_characteristicts'.
     # Example: 'tissue: leaf'
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = "unknown" # Default value if not found
     for char_item in characteristics:
         if char_item.startswith('tissue:'):
@@ -4177,11 +4143,11 @@ def GSE48474_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue
 
     # 2. Extract 'treatment'
-    # Treatment information can be found in 'Sample source_name:' or 'Sample title:'.
+    # Treatment information can be found in 'sample_source_name' or 'sample_title'.
     # It typically indicates 'drought treatment' or 'control'.
     treatment_list = []
-    source_name_str = sample_metadata.get('Sample source_name:', [''])[0].lower()
-    title_str = sample_metadata.get('Sample title:', [''])[0].lower()
+    source_name_str = sample_metadata.get('sample_source_name', [''])[0].lower()
+    title_str = sample_metadata.get('sample_title', [''])[0].lower()
 
     if 'drought' in source_name_str or 'drought' in title_str:
         treatment_list.append('drought')
@@ -4192,7 +4158,7 @@ def GSE48474_extractor(sample_metadata: dict) -> dict:
     extracted_data['treatment'] = treatment_list if treatment_list else ["untreated"] # "untreated" as a sensible default for control if "control" isn't explicitly found
 
     # 3. Extract 'medium'
-    # The growth medium is inferred from the 'Sample extraction protocol' and study design.
+    # The growth medium is inferred from the 'sample_extraction_protocol' and study design.
     # The protocol mentions "plants in pots were subjected to control condition (well-watered)
     # and drought condition (soil water deficit)", implying "soil" as the medium.
     # This appears to be constant across all samples in this study.
@@ -4225,10 +4191,10 @@ def GSE27552_extractor(sample_metadata: dict) -> dict:
     }
 
     # Sample characteristics often contain key-value pairs like 'tissue: value' or 'treatment: value'
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     
     # Extract tissue
-    # Prioritize 'tissue' from 'Sample characteristicts' for specificity
+    # Prioritize 'tissue' from 'sample_characteristicts' for specificity
     found_tissue_in_characteristics = False
     for char_str in characteristics:
         if char_str.lower().startswith('tissue:'):
@@ -4236,11 +4202,11 @@ def GSE27552_extractor(sample_metadata: dict) -> dict:
             found_tissue_in_characteristics = True
             break
     
-    # Fallback for tissue: if not found in characteristics, use 'Sample source_name:'
+    # Fallback for tissue: if not found in characteristics, use 'sample_source_name'
     # This fallback might not be strictly necessary for this dataset as 'tissue' seems
-    # consistently present in 'Sample characteristicts', but it adds robustness.
+    # consistently present in 'sample_characteristicts', but it adds robustness.
     if not found_tissue_in_characteristics:
-        source_name = sample_metadata.get('Sample source_name:', [])
+        source_name = sample_metadata.get('sample_source_name', [])
         if source_name:
             extracted_info['tissue'] = source_name[0].strip()
 
@@ -4270,8 +4236,8 @@ def GSE70861_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                This typically includes keys like 'Sample title:',
-                                'Sample source_name:', and 'Sample characteristicts'.
+                                This typically includes keys like 'sample_title',
+                                'sample_source_name', and 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary representing a JSON instance that conforms to the target schema:
@@ -4286,9 +4252,9 @@ def GSE70861_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is located within the 'Sample characteristicts' list.
+    # The tissue information is located within the 'sample_characteristicts' list.
     # We iterate through this list to find the item that starts with 'tissue:'.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = None
     for char_item in characteristics:
         if char_item.startswith('tissue:'):
@@ -4299,9 +4265,9 @@ def GSE70861_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue if tissue is not None else "unknown"
 
     # 2. Extract 'treatment'
-    # The treatment information is derived from the 'Sample title:'.
+    # The treatment information is derived from the 'sample_title'.
     # The title often contains keywords indicating the experimental condition.
-    sample_title = sample_metadata.get('Sample title:', [''])[0] # Get the first element from the list
+    sample_title = sample_metadata.get('sample_title', [''])[0] # Get the first element from the list
     treatment_list = []
 
     # Check for specific keywords in the sample title (case-insensitive)
@@ -4347,8 +4313,8 @@ def GSE10670_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected keys include 'Sample title:', 'Sample source_name:',
-                                and 'Sample characteristicts', with their values typically being lists of strings.
+                                Expected keys include 'sample_title', 'sample_source_name',
+                                and 'sample_characteristicts', with their values typically being lists of strings.
 
     Returns:
         dict: A dictionary formatted according to the specified schema.
@@ -4372,12 +4338,12 @@ def GSE10670_extractor(sample_metadata: dict) -> dict:
     
     # Combine relevant metadata strings for a comprehensive, case-insensitive search
     search_parts = []
-    if 'Sample title:' in sample_metadata and isinstance(sample_metadata['Sample title:'], list):
-        search_parts.extend(sample_metadata['Sample title:'])
-    if 'Sample source_name:' in sample_metadata and isinstance(sample_metadata['Sample source_name:'], list):
-        search_parts.extend(sample_metadata['Sample source_name:'])
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        search_parts.extend(sample_metadata['Sample characteristicts'])
+    if 'sample_title' in sample_metadata and isinstance(sample_metadata['sample_title'], list):
+        search_parts.extend(sample_metadata['sample_title'])
+    if 'sample_source_name' in sample_metadata and isinstance(sample_metadata['sample_source_name'], list):
+        search_parts.extend(sample_metadata['sample_source_name'])
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        search_parts.extend(sample_metadata['sample_characteristicts'])
 
     full_search_string = " ".join(search_parts).lower()
 
@@ -4410,7 +4376,7 @@ def GSE72050_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have keys like 'Sample characteristicts'.
+                                Expected to have keys like 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted as a JSON instance conforming to the schema:
@@ -4432,10 +4398,10 @@ def GSE72050_extractor(sample_metadata: dict) -> dict:
     # "soil" is a common and reasonable default medium.
     medium = "soil" 
 
-    # Extract information from the 'Sample characteristicts' list
+    # Extract information from the 'sample_characteristicts' list
     # This list contains key-value pairs as strings (e.g., 'tissue: leaf')
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 # Extract the value after 'tissue:' and strip whitespace
                 tissue = characteristic.split(':', 1)[1].strip()
@@ -4485,9 +4451,9 @@ def GSE65414_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # Example: 'tissue: leaf'
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = None
     for char_string in characteristics:
         if char_string.startswith('tissue:'):
@@ -4498,7 +4464,7 @@ def GSE65414_extractor(sample_metadata: dict) -> dict:
     extracted_data['tissue'] = tissue if tissue is not None else "unknown"
 
     # Extract 'treatment'
-    # The treatment information (humidity) is also found in 'Sample characteristicts'.
+    # The treatment information (humidity) is also found in 'sample_characteristicts'.
     # Example: 'treatment (humidity): ctrl' or 'treatment (humidity): dry'
     treatment_list = []
     for char_string in characteristics:
@@ -4542,23 +4508,23 @@ def GSE103398_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The 'tissue' information is found within the 'Sample characteristicts' list.
+    # The 'tissue' information is found within the 'sample_characteristicts' list.
     # It consistently appears as 'tissue: whole seedling'.
     tissue_value = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 tissue_value = characteristic.split(':', 1)[1].strip()
                 break
     extracted_data['tissue'] = tissue_value if tissue_value is not None else "unknown" # Provide a fallback if not found, though it's consistent in this dataset.
 
     # 2. Extract 'treatment'
-    # The 'treatment' information is found within the 'Sample characteristicts' list.
+    # The 'treatment' information is found within the 'sample_characteristicts' list.
     # It appears as 'subjected to: [treatment_type] treatment'.
     # Treatments can be single ('naïve', 'primed', 'triggered') or compound ('primed and triggered').
     treatment_list = []
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('subjected to:'):
                 treatment_str = characteristic.split(':', 1)[1].strip()
                 
@@ -4599,7 +4565,7 @@ def GSE16222_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have a 'Sample characteristicts' key
+                                Expected to have a 'sample_characteristicts' key
                                 which is a list of strings.
 
     Returns:
@@ -4617,8 +4583,8 @@ def GSE16222_extractor(sample_metadata: dict) -> dict:
         "medium": None
     }
 
-    # 'Sample characteristicts' is a list of strings containing the desired information
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # 'sample_characteristicts' is a list of strings containing the desired information
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     # --- Extract 'tissue' ---
     # Look for a string starting with 'growth stage:'
@@ -4724,9 +4690,9 @@ def GSE53308_extractor(sample_metadata: dict) -> dict:
     # The medium is constant across all samples in this study.
     extracted_data["medium"] = "hydroponic medium"
 
-    # 2. Extract 'tissue' and 'treatment' from 'Sample characteristicts':
+    # 2. Extract 'tissue' and 'treatment' from 'sample_characteristicts':
     # This field is a list of strings, where each string is in "key: value" format.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     # Initialize treatment as an empty list to ensure it's always an array
     extracted_data["treatment"] = []
@@ -4770,7 +4736,7 @@ def GSE108070_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                This typically includes keys like 'Sample characteristicts'.
+                                This typically includes keys like 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema,
@@ -4786,10 +4752,10 @@ def GSE108070_extractor(sample_metadata: dict) -> dict:
     extracted_data["tissue"] = "seedling"
 
     # 2. Extract 'treatment'
-    # Treatments and stresses are found in 'Sample characteristicts'.
+    # Treatments and stresses are found in 'sample_characteristicts'.
     # We filter out control agents (like DMSO) and non-stress conditions.
     treatments = []
-    characteristics = sample_metadata.get("Sample characteristicts", [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     for char_str in characteristics:
         if ": " in char_str:
@@ -4833,7 +4799,7 @@ def GSE6583_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                This typically includes fields like 'Sample characteristicts'.
+                                This typically includes fields like 'sample_characteristicts'.
 
     Returns:
         dict: A dictionary formatted as a JSON instance conforming to the
@@ -4850,8 +4816,8 @@ def GSE6583_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'treatment'
     treatments = []
-    # The 'Sample characteristicts' field contains the condition/treatment information.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # The 'sample_characteristicts' field contains the condition/treatment information.
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     for char_str in characteristics:
         if char_str.startswith('Condition:'):
@@ -4883,18 +4849,18 @@ def GSE6583_extractor(sample_metadata: dict) -> dict:
 if __name__ == '__main__':
     # Example usage with the provided samples_metadata
     samples_metadata = {
-        'GSM152139': {'Sample_id': 'GSM152139', 'Sample title:': ['Col-0 drought 3'], 'Sample source_name:': ['Col-0 d3'], 'Sample characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: drought 2hr'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152142': {'Sample_id': 'GSM152142', 'Sample title:': ['siz1-3 control 2'], 'Sample source_name:': ['siz1-3 c2'], 'Sample characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: control'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152140': {'Sample_id': 'GSM152140', 'Sample title:': ['siz1-3 control 1'], 'Sample source_name:': ['siz1-3 c1'], 'Sample characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: control'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152144': {'Sample_id': 'GSM152144', 'Sample title:': ['siz1-3 control 3'], 'Sample source_name:': ['siz1-3 c3'], 'Sample characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: control'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152137': {'Sample_id': 'GSM152137', 'Sample title:': ['Col-0 drought 2'], 'Sample source_name:': ['Col-0 d2'], 'Sample characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: drought 2hr'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152141': {'Sample_id': 'GSM152141', 'Sample title:': ['siz1-3 drought 1'], 'Sample source_name:': ['siz1-3 d1'], 'Sample characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: drought 2hr'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152135': {'Sample_id': 'GSM152135', 'Sample title:': ['Col-0 drought 1'], 'Sample source_name:': ['Col 0 d1'], 'Sample characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: drought 2hr'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152145': {'Sample_id': 'GSM152145', 'Sample title:': ['siz1-3 drought 3'], 'Sample source_name:': ['siz1-3 d3'], 'Sample characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: drought 2hr'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152143': {'Sample_id': 'GSM152143', 'Sample title:': ['siz1-3 drought 2'], 'Sample source_name:': ['siz1-3 d2'], 'Sample characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: drought 2hr'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152136': {'Sample_id': 'GSM152136', 'Sample title:': ['Col-0 control 2'], 'Sample source_name:': ['Col-0 c2'], 'Sample characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: control'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152138': {'Sample_id': 'GSM152138', 'Sample title:': ['Col-0 control 3'], 'Sample source_name:': ['Col-0 c3'], 'Sample characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: control'], 'Sample extraction protocol': ['TriZOL']},
-        'GSM152134': {'Sample_id': 'GSM152134', 'Sample title:': ['Col-0 control 1'], 'Sample source_name:': ['Col-0 c1'], 'Sample characteristicts': ['Columbia 0', 'Age: 21 days', 'Condition: control'], 'Sample extraction protocol': ['TriZOL']}
+        'GSM152139': {'Sample_id': 'GSM152139', 'sample_title': ['Col-0 drought 3'], 'sample_source_name': ['Col-0 d3'], 'sample_characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: drought 2hr'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152142': {'Sample_id': 'GSM152142', 'sample_title': ['siz1-3 control 2'], 'sample_source_name': ['siz1-3 c2'], 'sample_characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: control'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152140': {'Sample_id': 'GSM152140', 'sample_title': ['siz1-3 control 1'], 'sample_source_name': ['siz1-3 c1'], 'sample_characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: control'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152144': {'Sample_id': 'GSM152144', 'sample_title': ['siz1-3 control 3'], 'sample_source_name': ['siz1-3 c3'], 'sample_characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: control'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152137': {'Sample_id': 'GSM152137', 'sample_title': ['Col-0 drought 2'], 'sample_source_name': ['Col-0 d2'], 'sample_characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: drought 2hr'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152141': {'Sample_id': 'GSM152141', 'sample_title': ['siz1-3 drought 1'], 'sample_source_name': ['siz1-3 d1'], 'sample_characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: drought 2hr'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152135': {'Sample_id': 'GSM152135', 'sample_title': ['Col-0 drought 1'], 'sample_source_name': ['Col 0 d1'], 'sample_characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: drought 2hr'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152145': {'Sample_id': 'GSM152145', 'sample_title': ['siz1-3 drought 3'], 'sample_source_name': ['siz1-3 d3'], 'sample_characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: drought 2hr'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152143': {'Sample_id': 'GSM152143', 'sample_title': ['siz1-3 drought 2'], 'sample_source_name': ['siz1-3 d2'], 'sample_characteristicts': ['Genotype: siz1-3', 'age: 3 weeks', 'Condition: drought 2hr'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152136': {'Sample_id': 'GSM152136', 'sample_title': ['Col-0 control 2'], 'sample_source_name': ['Col-0 c2'], 'sample_characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: control'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152138': {'Sample_id': 'GSM152138', 'sample_title': ['Col-0 control 3'], 'sample_source_name': ['Col-0 c3'], 'sample_characteristicts': ['Ecotype: Columbia 0', 'age: 3 weeks', 'Condition: control'], 'sample_extraction_protocol': ['TriZOL']},
+        'GSM152134': {'Sample_id': 'GSM152134', 'sample_title': ['Col-0 control 1'], 'sample_source_name': ['Col-0 c1'], 'sample_characteristicts': ['Columbia 0', 'Age: 21 days', 'Condition: control'], 'sample_extraction_protocol': ['TriZOL']}
     }
 
     print("--- Extracted Data for Sample GSM152139 (Drought) ---")
@@ -4916,10 +4882,10 @@ if __name__ == '__main__':
     print("\n--- Extracted Data for Hypothetical Sample (Missing Characteristics) ---")
     hypothetical_sample = {
         'Sample_id': 'GSM_HYPO',
-        'Sample title:': ['Hypothetical Sample'],
-        'Sample source_name:': ['Hypo'],
-        # 'Sample characteristicts': [] # Missing this key
-        'Sample extraction protocol': ['TriZOL']
+        'sample_title': ['Hypothetical Sample'],
+        'sample_source_name': ['Hypo'],
+        # 'sample_characteristicts': [] # Missing this key
+        'sample_extraction_protocol': ['TriZOL']
     }
     extracted_hypo = GSE6583_extractor(hypothetical_sample)
     print(json.dumps(extracted_hypo, indent=2))
@@ -4972,7 +4938,7 @@ def GSE121225_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'treatment'
     treatments = []
-    sample_characteristics = sample_metadata.get('Sample characteristicts', [])
+    sample_characteristics = sample_metadata.get('sample_characteristicts', [])
 
     condition = None
     for char_entry in sample_characteristics:
@@ -5019,11 +4985,11 @@ def GSE34595_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # Example: 'tissue: cultured explant'
     tissue_found = False
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str) and characteristic.startswith('tissue:'):
                 extracted_data['tissue'] = characteristic.split(':', 1)[1].strip()
                 tissue_found = True
@@ -5050,10 +5016,10 @@ def GSE34595_extractor(sample_metadata: dict) -> dict:
     treatments.append("12 hours of culture")
     treatments.append("28C temperature")
 
-    # Check for additional treatments mentioned in the 'Sample title:'
+    # Check for additional treatments mentioned in the 'sample_title'
     # Example: 'rrd2_root induction.12h.28C_rep3'
-    if 'Sample title:' in sample_metadata and isinstance(sample_metadata['Sample title:'], list) and sample_metadata['Sample title:']:
-        sample_title = sample_metadata['Sample title:'][0]
+    if 'sample_title' in sample_metadata and isinstance(sample_metadata['sample_title'], list) and sample_metadata['sample_title']:
+        sample_title = sample_metadata['sample_title'][0]
         if "root induction" in sample_title:
             treatments.append("root induction")
 
@@ -5080,7 +5046,7 @@ def GSE4062_extractor(sample_metadata: dict) -> dict:
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
                                 This dictionary is expected to have keys like
-                                'Sample characteristicts' and 'Sample title:'.
+                                'sample_characteristicts' and 'sample_title'.
 
     Returns:
         dict: A dictionary formatted as a JSON instance conforming to the
@@ -5097,11 +5063,11 @@ def GSE4062_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Tissue information is found within the 'Sample characteristicts' list,
+    # Tissue information is found within the 'sample_characteristicts' list,
     # typically in an entry starting with "Tissue: ".
     tissue = "not specified" # Default value if not found
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if isinstance(characteristic, str) and characteristic.startswith('Tissue:'):
                 # Extract the value after "Tissue:" and strip any whitespace
                 tissue = characteristic.split(':', 1)[1].strip()
@@ -5110,10 +5076,10 @@ def GSE4062_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'treatment'
     # Treatment information (control or heat shock) is primarily derived from
-    # the 'Sample title:'.
+    # the 'sample_title'.
     treatment = []
-    if 'Sample title:' in sample_metadata and isinstance(sample_metadata['Sample title:'], list) and sample_metadata['Sample title:']:
-        sample_title = sample_metadata['Sample title:'][0].lower()
+    if 'sample_title' in sample_metadata and isinstance(sample_metadata['sample_title'], list) and sample_metadata['sample_title']:
+        sample_title = sample_metadata['sample_title'][0].lower()
         if 'control' in sample_title:
             treatment.append("control")
         elif 'heat shock' in sample_title:
@@ -5138,14 +5104,14 @@ def GSE4062_extractor(sample_metadata: dict) -> dict:
 if __name__ == '__main__':
     # Example usage with the provided samples_metadata
     samples_metadata = {
-        'GSM92824': {'Sample_id': 'GSM92824', 'Sample title:': ['Wt_shoot_control_rep2'], 'Sample source_name:': ['shoot, heat shock, control, 2h'], 'Sample characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''},
-        'GSM92829': {'Sample_id': 'GSM92829', 'Sample title:': ['Hsa32KO_shoot_heat shock_rep1'], 'Sample source_name:': ['shoot, heat shock,  2h'], 'Sample characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''},
-        'GSM92830': {'Sample_id': 'GSM92830', 'Sample title:': ['Hsa32KO_shoot_heat shock_rep2'], 'Sample source_name:': ['shoot, heat shock, 2h'], 'Sample characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''},
-        'GSM92826': {'Sample_id': 'GSM92826', 'Sample title:': ['Wt_shoot_heat shock_rep2'], 'Sample source_name:': ['shoot, heat shock, 2h'], 'Sample characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''},
-        'GSM92827': {'Sample_id': 'GSM92827', 'Sample title:': ['Hsa32KO_shoot_control_rep1'], 'Sample source_name:': ['shoot, heat shock, control, 2h'], 'Sample characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''},
-        'GSM92823': {'Sample_id': 'GSM92823', 'Sample title:': ['Wt_shoot_control_rep1'], 'Sample source_name:': ['shoot, heat shock, 2h'], 'Sample characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''},
-        'GSM92828': {'Sample_id': 'GSM92828', 'Sample title:': ['Hsa32KO_shoot_control_rep2'], 'Sample source_name:': ['shoot, heat shock, control, 2h'], 'Sample characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''},
-        'GSM92825': {'Sample_id': 'GSM92825', 'Sample title:': ['Wt_shoot_heat shock_rep1'], 'Sample source_name:': ['shoot, heat shock, 2h'], 'Sample characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'Sample extraction protocol': ''}
+        'GSM92824': {'Sample_id': 'GSM92824', 'sample_title': ['Wt_shoot_control_rep2'], 'sample_source_name': ['shoot, heat shock, control, 2h'], 'sample_characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''},
+        'GSM92829': {'Sample_id': 'GSM92829', 'sample_title': ['Hsa32KO_shoot_heat shock_rep1'], 'sample_source_name': ['shoot, heat shock,  2h'], 'sample_characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''},
+        'GSM92830': {'Sample_id': 'GSM92830', 'sample_title': ['Hsa32KO_shoot_heat shock_rep2'], 'sample_source_name': ['shoot, heat shock, 2h'], 'sample_characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''},
+        'GSM92826': {'Sample_id': 'GSM92826', 'sample_title': ['Wt_shoot_heat shock_rep2'], 'sample_source_name': ['shoot, heat shock, 2h'], 'sample_characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''},
+        'GSM92827': {'Sample_id': 'GSM92827', 'sample_title': ['Hsa32KO_shoot_control_rep1'], 'sample_source_name': ['shoot, heat shock, control, 2h'], 'sample_characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''},
+        'GSM92823': {'Sample_id': 'GSM92823', 'sample_title': ['Wt_shoot_control_rep1'], 'sample_source_name': ['shoot, heat shock, 2h'], 'sample_characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''},
+        'GSM92828': {'Sample_id': 'GSM92828', 'sample_title': ['Hsa32KO_shoot_control_rep2'], 'sample_source_name': ['shoot, heat shock, control, 2h'], 'sample_characteristicts': ['Ecotype: Col-0', 'Mutant allele: Hsa32 (At4g21320) T-DNA knockout, GABI-268A08', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''},
+        'GSM92825': {'Sample_id': 'GSM92825', 'sample_title': ['Wt_shoot_heat shock_rep1'], 'sample_source_name': ['shoot, heat shock, 2h'], 'sample_characteristicts': ['Ecotype: Col-0 wild type', 'Stage: 2 weeks old', 'Tissue: shoot'], 'sample_extraction_protocol': ''}
     }
 
     print("--- Extracted Data for Samples ---")
@@ -5183,7 +5149,7 @@ def GSE90562_extractor(sample_metadata: dict) -> dict:
     The function infers 'tissue' and 'medium' based on common practices for
     Arabidopsis studies, as this information is not explicitly present in the
     provided sample or study metadata. 'Treatment' is extracted from the
-    'Sample characteristicts' field, with specific details (like concentration
+    'sample_characteristicts' field, with specific details (like concentration
     and duration for salt stress) derived from the study's overall design.
 
     Args:
@@ -5203,8 +5169,8 @@ def GSE90562_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'treatment'
     treatments = []
-    # The relevant information is found in the 'Sample characteristicts' list.
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # The relevant information is found in the 'sample_characteristicts' list.
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     for char_str in characteristics:
         if char_str.startswith('protocol:'):
@@ -5249,9 +5215,9 @@ def GSE79997_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # Look for 'tissue: <value>' within the 'Sample characteristicts' list.
+    # Look for 'tissue: <value>' within the 'sample_characteristicts' list.
     tissue_found = False
-    for char_string in sample_metadata.get('Sample characteristicts', []):
+    for char_string in sample_metadata.get('sample_characteristicts', []):
         if char_string.startswith('tissue:'):
             extracted_data['tissue'] = char_string.split(':', 1)[1].strip()
             tissue_found = True
@@ -5260,10 +5226,10 @@ def GSE79997_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = "unknown" # Default if tissue information is not found
 
     # 2. Extract 'treatment'
-    # The 'Sample source_name:' provides the most direct information about the treatment.
+    # The 'sample_source_name' provides the most direct information about the treatment.
     # The schema requires an array of strings for treatment.
     treatment_list = []
-    source_name = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name = sample_metadata.get('sample_source_name', [''])[0]
 
     if "200 mM NaCl" in source_name:
         treatment_list.append("200 mM NaCl")
@@ -5271,7 +5237,7 @@ def GSE79997_extractor(sample_metadata: dict) -> dict:
         treatment_list.append("mock treatment")
     else:
         # Fallback to Sample title if source_name is not explicit enough
-        title = sample_metadata.get('Sample title:', [''])[0]
+        title = sample_metadata.get('sample_title', [''])[0]
         if "Salt treatment" in title:
             treatment_list.append("salt treatment")
         elif "mock treatment" in title:
@@ -5283,9 +5249,9 @@ def GSE79997_extractor(sample_metadata: dict) -> dict:
 
     # 3. Extract 'medium'
     # The medium information is embedded within the 'treatment:' string
-    # in 'Sample characteristicts'.
+    # in 'sample_characteristicts'.
     medium_found = False
-    for char_string in sample_metadata.get('Sample characteristicts', []):
+    for char_string in sample_metadata.get('sample_characteristicts', []):
         if char_string.startswith('treatment:'):
             # Prioritize "1/2 strength MS medium" as it's more descriptive
             match_strength = re.search(r'1/2 strength MS medium', char_string, re.IGNORECASE)
@@ -5323,9 +5289,9 @@ def GSE10643_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The 'Sample source_name:' field consistently indicates the tissue.
+    # The 'sample_source_name' field consistently indicates the tissue.
     # Example: 'leaf of dor mutant under control'
-    source_name_raw = sample_metadata.get('Sample source_name:', [''])[0]
+    source_name_raw = sample_metadata.get('sample_source_name', [''])[0]
     source_name_lower = source_name_raw.lower()
 
     if 'leaf' in source_name_lower:
@@ -5335,7 +5301,7 @@ def GSE10643_extractor(sample_metadata: dict) -> dict:
         extracted_data['tissue'] = 'unknown' 
 
     # 2. Extract 'treatment'
-    # The 'Sample source_name:' field also indicates the treatment condition.
+    # The 'sample_source_name' field also indicates the treatment condition.
     # Examples: 'leaf of WT mutant after drought treatment', 'leaf of dor mutant under control'
     treatment_list = []
     if 'drought treatment' in source_name_lower:
@@ -5378,9 +5344,9 @@ def GSE51897_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # Example: 'tissue: seedling'
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    characteristics = sample_metadata.get('sample_characteristicts', [])
     tissue = "unspecified" # Default value if not found
     for char_str in characteristics:
         if char_str.startswith('tissue:'):
@@ -5392,7 +5358,7 @@ def GSE51897_extractor(sample_metadata: dict) -> dict:
     # The study metadata's 'overall_design' and sample's 'Sample source_name'
     # consistently indicate the growth conditions.
     # 'overall_design': "grown at 29°C under long day conditions"
-    # 'Sample source_name:': "29°C LD" (LD stands for Long Day)
+    # 'sample_source_name': "29°C LD" (LD stands for Long Day)
     # These treatments appear to be constant across all samples in this study.
     treatments = ["29°C", "Long Day"]
     extracted_data['treatment'] = treatments
@@ -5415,10 +5381,10 @@ if __name__ == '__main__':
 
     # Example samples metadata
     samples_metadata = {
-        'GSM1254792': {'Sample_id': 'GSM1254792', 'Sample title:': ['Col WT, rep1'], 'Sample source_name:': ['Col WT, 13 DAG, 29°C LD'], 'Sample characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: wild-type', 'phenotype: High-temperature-induced early flowering'], 'Sample extraction protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']},
-        'GSM1254795': {'Sample_id': 'GSM1254795', 'Sample title:': ['jmj30 jmj32, rep2'], 'Sample source_name:': ['jmj30 jmj32, 13 DAG, 29°C LD'], 'Sample characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: jmj30-2 jmj32-1', 'phenotype: Flowered earlier than WT grown at similar condition'], 'Sample extraction protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']},
-        'GSM1254793': {'Sample_id': 'GSM1254793', 'Sample title:': ['Col WT, rep2'], 'Sample source_name:': ['Col WT, 13 DAG, 29°C LD'], 'Sample characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: wild-type', 'phenotype: High-temperature-induced early flowering'], 'Sample extraction protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']},
-        'GSM1254794': {'Sample_id': 'GSM1254794', 'Sample title:': ['jmj30 jmj32, rep1'], 'Sample source_name:': ['jmj30 jmj32, 13 DAG, 29°C LD'], 'Sample characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: jmj30-2 jmj32-1', 'phenotype: Flowered earlier than WT grown at similar condition'], 'Sample extraction protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']}
+        'GSM1254792': {'Sample_id': 'GSM1254792', 'sample_title': ['Col WT, rep1'], 'sample_source_name': ['Col WT, 13 DAG, 29°C LD'], 'sample_characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: wild-type', 'phenotype: High-temperature-induced early flowering'], 'sample_extraction_protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']},
+        'GSM1254795': {'Sample_id': 'GSM1254795', 'sample_title': ['jmj30 jmj32, rep2'], 'sample_source_name': ['jmj30 jmj32, 13 DAG, 29°C LD'], 'sample_characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: jmj30-2 jmj32-1', 'phenotype: Flowered earlier than WT grown at similar condition'], 'sample_extraction_protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']},
+        'GSM1254793': {'Sample_id': 'GSM1254793', 'sample_title': ['Col WT, rep2'], 'sample_source_name': ['Col WT, 13 DAG, 29°C LD'], 'sample_characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: wild-type', 'phenotype: High-temperature-induced early flowering'], 'sample_extraction_protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']},
+        'GSM1254794': {'Sample_id': 'GSM1254794', 'sample_title': ['jmj30 jmj32, rep1'], 'sample_source_name': ['jmj30 jmj32, 13 DAG, 29°C LD'], 'sample_characteristicts': ['genetic background: Col-0', 'tissue: seedling', 'genotype: jmj30-2 jmj32-1', 'phenotype: Flowered earlier than WT grown at similar condition'], 'sample_extraction_protocol': ['Total RNA was extracted using the RNeasy Mini kit (Qiagen Inc., Valencia, CA, USA) and DNA was removed by on-column DNaseI digestion with the RNase-Free DNase set (Qiagen).']}
     }
 
     # Test the function with one of the sample metadata objects
@@ -5466,8 +5432,8 @@ def GSE119383_extractor(sample_metadata: dict) -> dict:
     extracted_data['medium'] = "soil"
     extracted_data['treatment'] = [] # Default to empty list, will be populated if stress is found
 
-    # Extract information from 'Sample characteristicts' list
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # Extract information from 'sample_characteristicts' list
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     tissue_found = False
     for char_string in characteristics:
@@ -5501,8 +5467,8 @@ def GSE26266_extractor(sample_metadata: dict) -> dict:
     for the GSE26266 dataset, conforming to a specific JSON schema.
 
     The function extracts:
-    - 'tissue' from 'Sample characteristicts'.
-    - 'treatment' from 'Sample characteristicts'.
+    - 'tissue' from 'sample_characteristicts'.
+    - 'treatment' from 'sample_characteristicts'.
     - 'medium' which is a constant value derived from the study's overall design.
 
     Args:
@@ -5522,10 +5488,10 @@ def GSE26266_extractor(sample_metadata: dict) -> dict:
     # "Seven-day-old seedlings of Col-0, Ws and QK grown at 22oC on 0.5x MS plates containing 1% sucrose"
     medium = "0.5x MS plates containing 1% sucrose"
 
-    # Extract information from 'Sample characteristicts'
+    # Extract information from 'sample_characteristicts'
     # This field is a list of strings, where each string is a key-value pair.
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for char_str in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for char_str in sample_metadata['sample_characteristicts']:
             # Convert to lowercase for robust matching, then split and strip whitespace
             char_str_lower = char_str.lower()
 
@@ -5571,8 +5537,8 @@ def GSE112161_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract Treatment
     treatments = []
-    if "Sample characteristicts" in sample_metadata:
-        for characteristic in sample_metadata["Sample characteristicts"]:
+    if 'sample_characteristicts' in sample_metadata:
+        for characteristic in sample_metadata['sample_characteristicts']:
             char_lower = characteristic.lower()
             if char_lower.startswith("treatment:"):
                 treatment_value = characteristic.split(":", 1)[1].strip()
@@ -5610,7 +5576,7 @@ def GSE78713_extractor(sample_metadata: dict) -> dict:
     - 'tissue' and 'medium' are inferred as constant across samples based on
       the study's general description of using 'plants' and common Arabidopsis
       growth conditions in a lab setting.
-    - 'treatment' is extracted from the 'Sample characteristicts' field.
+    - 'treatment' is extracted from the 'sample_characteristicts' field.
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
@@ -5632,11 +5598,11 @@ def GSE78713_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'treatment'
     treatments = []
-    # The 'Sample characteristicts' field is a list of strings,
+    # The 'sample_characteristicts' field is a list of strings,
     # one of which specifies the treatment.
-    if 'Sample characteristicts' in sample_metadata and \
-       isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and \
+       isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('treatment:'):
                 # Extract the value after "treatment: " and strip any whitespace
                 treatment_value = characteristic.split('treatment:')[1].strip()
@@ -5676,11 +5642,11 @@ def GSE110857_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is found within the 'Sample characteristicts' list.
+    # The tissue information is found within the 'sample_characteristicts' list.
     # Example: 'tissue: Shoot'
     tissue = None
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('tissue:'):
                 tissue = characteristic.split(':', 1)[1].strip()
                 break
@@ -5688,11 +5654,11 @@ def GSE110857_extractor(sample_metadata: dict) -> dict:
 
     # 2. Extract 'treatment'
     # The treatment information is derived from the 'condition' within
-    # 'Sample characteristicts'. 'Drought stressed' maps to ["Drought stress"],
+    # 'sample_characteristicts'. 'Drought stressed' maps to ["Drought stress"],
     # while 'Control' maps to an empty list.
     treatment = []
-    if 'Sample characteristicts' in sample_metadata and isinstance(sample_metadata['Sample characteristicts'], list):
-        for characteristic in sample_metadata['Sample characteristicts']:
+    if 'sample_characteristicts' in sample_metadata and isinstance(sample_metadata['sample_characteristicts'], list):
+        for characteristic in sample_metadata['sample_characteristicts']:
             if characteristic.startswith('condition:'):
                 condition = characteristic.split(':', 1)[1].strip()
                 if condition == 'Drought stressed':
@@ -5738,8 +5704,8 @@ def GSE66369_extractor(sample_metadata: dict) -> dict:
                      # This information is not explicitly present in the provided metadata,
                      # but is a required field in the schema and likely constant across samples.
 
-    # Extract information from 'Sample characteristicts' list
-    characteristics = sample_metadata.get('Sample characteristicts', [])
+    # Extract information from 'sample_characteristicts' list
+    characteristics = sample_metadata.get('sample_characteristicts', [])
 
     for char_string in characteristics:
         if char_string.startswith('tissue:'):
@@ -5751,9 +5717,9 @@ def GSE66369_extractor(sample_metadata: dict) -> dict:
             treatment_str = char_string.split(':', 1)[1].strip()
             treatment.append(treatment_str)
 
-    # If tissue was not found in characteristics, try 'Sample source_name:' as a fallback
+    # If tissue was not found in characteristics, try 'sample_source_name' as a fallback
     if tissue == "not specified":
-        source_name = sample_metadata.get('Sample source_name:', [None])[0]
+        source_name = sample_metadata.get('sample_source_name', [None])[0]
         if source_name:
             tissue = source_name.lower() # e.g., "Whole plant" -> "whole plant"
 
@@ -5780,10 +5746,10 @@ def GSE27551_extractor(sample_metadata: dict) -> dict:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
                                 Example:
                                 {'Sample_id': 'GSM680433',
-                                 'Sample title:': ['leaf_gDNA_Got22_3'],
-                                 'Sample source_name:': ['rosette leaf'],
-                                 'Sample characteristicts': ['accession: CS22609', 'ecotype: Got22', 'tissue: rosette leaf'],
-                                 'Sample extraction protocol': ['Qiagen Dneasy Plant Mini prep']}
+                                 'sample_title': ['leaf_gDNA_Got22_3'],
+                                 'sample_source_name': ['rosette leaf'],
+                                 'sample_characteristicts': ['accession: CS22609', 'ecotype: Got22', 'tissue: rosette leaf'],
+                                 'sample_extraction_protocol': ['Qiagen Dneasy Plant Mini prep']}
 
     Returns:
         dict: A dictionary formatted according to the specified schema,
@@ -5792,16 +5758,16 @@ def GSE27551_extractor(sample_metadata: dict) -> dict:
     extracted_data = {}
 
     # 1. Extract 'tissue'
-    # The tissue information is consistently found under 'Sample source_name:'
-    # and also within 'Sample characteristicts' as 'tissue: rosette leaf'.
-    # We prioritize 'Sample source_name:' for direct extraction.
-    if 'Sample source_name:' in sample_metadata and sample_metadata['Sample source_name:']:
-        extracted_data['tissue'] = sample_metadata['Sample source_name:'][0]
+    # The tissue information is consistently found under 'sample_source_name'
+    # and also within 'sample_characteristicts' as 'tissue: rosette leaf'.
+    # We prioritize 'sample_source_name' for direct extraction.
+    if 'sample_source_name' in sample_metadata and sample_metadata['sample_source_name']:
+        extracted_data['tissue'] = sample_metadata['sample_source_name'][0]
     else:
-        # Fallback to 'Sample characteristicts' if 'Sample source_name:' is missing or empty
+        # Fallback to 'sample_characteristicts' if 'sample_source_name' is missing or empty
         tissue_found = False
-        if 'Sample characteristicts' in sample_metadata:
-            for characteristic in sample_metadata['Sample characteristicts']:
+        if 'sample_characteristicts' in sample_metadata:
+            for characteristic in sample_metadata['sample_characteristicts']:
                 if characteristic.startswith('tissue:'):
                     extracted_data['tissue'] = characteristic.split(':', 1)[1].strip()
                     tissue_found = True
@@ -5842,7 +5808,7 @@ def GSE11538_extractor(sample_metadata: dict) -> dict:
 
     Args:
         sample_metadata (dict): A dictionary containing metadata for a single sample.
-                                Expected to have keys like 'Sample source_name:'.
+                                Expected to have keys like 'sample_source_name'.
 
     Returns:
         dict: A dictionary formatted according to the specified schema:
@@ -5850,11 +5816,11 @@ def GSE11538_extractor(sample_metadata: dict) -> dict:
     """
     extracted_data = {}
 
-    # The 'Sample source_name:' field contains both tissue and treatment information,
+    # The 'sample_source_name' field contains both tissue and treatment information,
     # typically in the format "tissue_name, treatment_condition".
     # We use .get() with a default to safely handle cases where the key might be missing,
     # though for this dataset, it's expected to be present.
-    source_name_list = sample_metadata.get('Sample source_name:', [''])
+    source_name_list = sample_metadata.get('sample_source_name', [''])
     source_name = source_name_list[0] if source_name_list else ''
 
     # 1. Extract 'tissue'
@@ -5863,7 +5829,7 @@ def GSE11538_extractor(sample_metadata: dict) -> dict:
         tissue_part = source_name.split(',')[0].strip()
         extracted_data['tissue'] = tissue_part
     else:
-        # Fallback if 'Sample source_name:' is empty or malformed.
+        # Fallback if 'sample_source_name' is empty or malformed.
         # "unspecified" is used as a placeholder to ensure schema compliance.
         extracted_data['tissue'] = "unspecified"
 

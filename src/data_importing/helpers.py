@@ -180,33 +180,87 @@ def hierarchical_clustering_plot(data_matrix:np.array, path:str, name:str):
     plt.close()
 
 
-def box_plot(df: pd.DataFrame, cols_per_plot:int, out_path: str, group:int = 0):
+# def box_plot(df: pd.DataFrame, cols_per_plot:int, out_path: str):
+#     num_cols = len(df.columns)
+#     num_plots = math.ceil(num_cols / cols_per_plot)  # Calculate number of plots needed
+#     # Create directory for this group
+#     plot_path = os.path.join(out_path)
+#     os.makedirs(plot_path, exist_ok=True)  # exist_ok prevents errors if dir exists
+
+#     for plot_num in range(num_plots):
+#         # Calculate start and end column indices for this plot
+#         start_idx = plot_num * cols_per_plot
+#         end_idx = min((plot_num + 1) * cols_per_plot, num_cols)
+        
+        
+#         # Create figure with appropriate size
+#         plt.figure(figsize=(20, 10))  # Adjust size as needed
+#         plt.ylim(-18, 18)
+#         # Get columns for this plot and create boxplot
+#         current_cols = df.iloc[:, start_idx:end_idx]
+#         plt.boxplot(current_cols, labels=current_cols.columns)
+        
+#         # Rotate x-axis labels for better readability
+#         plt.xticks(rotation=45, ha='right')
+        
+#         # Add title and adjust layout
+#         plt.title(f'Boxplot Group {plot_num + 1} (Columns {start_idx + 1}-{end_idx})')
+#         plt.tight_layout()  # Prevents label cutoff
+        
+#         # Save and close
+#         plt.savefig(os.path.join(plot_path, f'boxplot_group_{plot_num + 1}.png'))
+#         plt.close()
+def box_plot(df: pd.DataFrame, cols_per_plot: int, out_path: str):
+    """
+    Generates and saves boxplots from a DataFrame, with visual separators between studies.
+    
+    Args:
+        df (pd.DataFrame): The input data.
+        cols_per_plot (int): The number of columns (samples) to include in each plot.
+        out_path (str): The directory to save the output plots.
+    """
     num_cols = len(df.columns)
-    num_plots = math.ceil(num_cols / cols_per_plot)  # Calculate number of plots needed
-    # Create directory for this group
-    plot_path = os.path.join(out_path, f'boxplot_group_{group}')
-    os.makedirs(plot_path, exist_ok=True)  # exist_ok prevents errors if dir exists
+    num_plots = math.ceil(num_cols / cols_per_plot)
+    
+    # Ensure the output directory exists
+    os.makedirs(out_path, exist_ok=True)
 
     for plot_num in range(num_plots):
-        # Calculate start and end column indices for this plot
         start_idx = plot_num * cols_per_plot
         end_idx = min((plot_num + 1) * cols_per_plot, num_cols)
         
-        
-        # Create figure with appropriate size
-        plt.figure(figsize=(20, 10))  # Adjust size as needed
-        
-        # Get columns for this plot and create boxplot
         current_cols = df.iloc[:, start_idx:end_idx]
+        
+        # Dynamically adjust figure width based on the number of columns
+        # This prevents the plots from looking too compressed.
+        fig_width = max(20, len(current_cols.columns) * 0.5) 
+        plt.figure(figsize=(fig_width, 10))
+        
+        # Set a fixed y-axis limit for consistent comparison across plots
+        plt.ylim(-18, 18)
+        
+        # Create the boxplot
         plt.boxplot(current_cols, labels=current_cols.columns)
         
+        # --- NEW: Add vertical lines between studies ---
+        # Extract study IDs from column names (e.g., 'GSE12345' from 'GSE12345_sample1')
+        study_ids = [name.split('_')[0] for name in current_cols.columns]
+        
+        # Iterate through the columns to find where the study ID changes
+        for i in range(1, len(study_ids)):
+            if study_ids[i] != study_ids[i-1]:
+                # Add a vertical line. Positions are 1-based, so the line goes
+                # at i + 0.5 to be between box i and box i+1.
+                plt.axvline(x=i + 0.5, color='black', linestyle='--', linewidth=1)
+        # --- END NEW ---
+
         # Rotate x-axis labels for better readability
         plt.xticks(rotation=45, ha='right')
         
-        # Add title and adjust layout
+        # Add title and adjust layout to prevent labels from being cut off
         plt.title(f'Boxplot Group {plot_num + 1} (Columns {start_idx + 1}-{end_idx})')
-        plt.tight_layout()  # Prevents label cutoff
+        plt.tight_layout()
         
-        # Save and close
-        plt.savefig(os.path.join(plot_path, f'boxplot_group_{plot_num + 1}.png'))
+        # Save the figure and close it to free up memory
+        plt.savefig(os.path.join(out_path, f'boxplot_group_{plot_num + 1}.png'))
         plt.close()

@@ -1,13 +1,15 @@
 import json
 import os
 from tqdm import tqdm
-from condense_and_evaluate_labels import compare_labels
 # from extraction_test_core import *
-from meta_data_processing.utils.extractors_full import *
-from llm_utils import get_condensed_labels
-from classes import LabelMap
-# TODO
-#repeated function:
+from utils.extractors_full import *
+from utils.llm_utils import get_condensed_labels
+from utils.classes import LabelMap
+import sys
+module_dir = './'
+sys.path.append(module_dir)
+from src.constants import *
+
 
 def load_labels_study(path):
     labels = {}
@@ -26,7 +28,7 @@ def load_json(path:str):
     return object
 
 
-def condense_labels(Studies,in_folder, saving_path,llm_grounding:bool = True):
+def condense_labels(Studies=Studies,in_folder=f'{METADATA_OUTPUT_DIR}/study_batch_metadata/', saving_path=LABELS_PATH,llm_grounding:bool = True):
     os.makedirs(saving_path,exist_ok=True)
     try:
         labels = load_labels_study(saving_path)
@@ -37,8 +39,7 @@ def condense_labels(Studies,in_folder, saving_path,llm_grounding:bool = True):
 
     # with open('constants/sample_list.json', 'r') as file:
     #     list_of_samples = json.load(file)
-    seen = LabelMap('maps')
-    count = 0
+    seen = LabelMap('./data/maps')
     for file in tqdm(os.listdir(in_folder)):
         if file.endswith('.json'):
             file_path = os.path.join(in_folder, file)
@@ -48,7 +49,7 @@ def condense_labels(Studies,in_folder, saving_path,llm_grounding:bool = True):
             
             study_info = load_json(file_path)
             for sample_id in study_info:
-                if sample_id == 'Study metadata':
+                if sample_id == 'study_metadata':
                     continue
                 if not (study_id in Studies):
                     continue
@@ -68,7 +69,7 @@ def condense_labels(Studies,in_folder, saving_path,llm_grounding:bool = True):
                     python_object['treatment'] = ['no treatment/control']
                 x=0
                 if llm_grounding and seen.check_past(python_object):
-                    condensed = dict(get_condensed_labels(study_info=study_info['Study metadata'], sample_info=python_object))
+                    condensed = dict(get_condensed_labels(study_info=study_info['study_metadata'], sample_info=python_object))
                     seen.add_mapping(python_object,condensed)
                     python_object = condensed
                 else:
@@ -85,15 +86,9 @@ def condense_labels(Studies,in_folder, saving_path,llm_grounding:bool = True):
 
 
 if __name__ == '__main__':
-    Studies = ['GSE44053', 'GSE77815', 'GSE16474', 'GSE4062', 'GSE9415', 'GSE18624', 'GSE40061', 'GSE112161', 'GSE20494', 'GSE79997', 'GSE27552', 'GSE16222', 'GSE110857', 'GSE4760', 'GSE46205', 'GSE71001', 'GSE58616', 'GSE162310', 'GSE22107', 'GSE62163', 'GSE51897', 'GSE72949', 'GSE90562', 'GSE5628', 'GSE26266', 'GSE34188', 'GSE34595', 'GSE76827', 'GSE119383', 'GSE65046', 'GSE11758', 'GSE65414', 'GSE37408', 'GSE5624', 'GSE10643', 'GSE15577', 'GSE11538', 'GSE70861', 'GSE6583', 'GSE27551', 'GSE12619', 'GSE121225', 'GSE108070', 'GSE78713', 'GSE110079', 'GSE63128', 'GSE60960', 'GSE37118', 'GSE79681', 'GSE63372', 'GSE5622', 'GSE26983', 'GSE27550', 'GSE19603', 'GSE95202', 'GSE53308', 'GSE16765', 'GSE71855', 'GSE58620', 'GSE24177', 'GSE35258', 'GSE10670', 'GSE49418', 'GSE18666', 'GSE83136', 'GSE44655', 'GSE27549', 'GSE19700', 'GSE103398', 'GSE63522', 'GSE201609', 'GSE5620', 'GSE66369', 'GSE2268', 'GSE71237', 'GSE48474', 'GSE41935', 'GSE27548', 'GSE5623', 'GSE72050', 'GSE126373']
-    # Studies = ['GSE34188']
-    in_folder = 'study_batch_metadata'
-    experiment = 'venice'
-    model = 'extractors_and_gemini'
-    saving_path = f'labels/{model}/{experiment}'
-    condense_labels(Studies,in_folder,saving_path)
+    condense_labels()
 
-    labels_1 = load_labels_study(saving_path)
+    labels_1 = load_labels_study(LABELS_PATH)
     res = []
     for st in labels_1:
         for sam in labels_1[st]:
@@ -103,5 +98,3 @@ if __name__ == '__main__':
             
     with open(f'llm_condensed_labels.json', 'w') as handle:
         json.dump(res, handle)
-    labels_2 = load_labels_study('/home/alex/Documents/GitHub/meta_data/in_use_labels/sample_labels_gemma_api_3_clean')
-    compare_labels(labels_1,labels_2)
