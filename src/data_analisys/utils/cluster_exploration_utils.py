@@ -5,6 +5,7 @@ import os
 import math
 import matplotlib.pyplot as plt
 import re
+from collections import defaultdict
 
 def to_int(x:list,name:str,path:str):
     new_x = []
@@ -49,20 +50,32 @@ def to_int_(x:list):
             floor = floor+1
     return new_x,seen
 
-def get_label_map(labels,sample_index,figure_out_path,labels_types):
+def get_samples(data_df):
+    return list(map(lambda x : x.split('_')[-1],data_df.columns))
+
+def get_studies(data_df):
+    return list(map(lambda x : x.split('_')[0],data_df.columns))
+
+def get_label_map_new(data_df,labels_df):
     labels_map = {}
-    for key in labels_types:
-        control_map = [None] * len(sample_index)
-        for sample in labels:
-            try:
-                control_map[sample_index.index(sample['sample_id'].upper())] = sample[key] #[Control]
-            except ValueError as e:
-                try:
-                    control_map[sample_index.index(sample['sample_id'].upper())] = '?'
-                except:
-                    pass
-        labels_map[key] = control_map#to_int(control_map,name=key,path=figure_out_path)
+    for sample,study in zip(get_samples(data_df),get_studies(data_df)):
+        temp = dict(labels_df.loc[sample])
+        for i in temp:
+            temp[i] = str(temp[i])
+        labels_map[sample] = temp
+        labels_map[sample]['study'] = study
     return labels_map
+
+def add_map(maps:dict,map:list,name:str):
+    assert(len(maps)==len(map))
+    for i,samples in enumerate(maps):
+        maps[samples][name] = str(map[i])
+    return maps
+def get_map(maps:dict,name:str):
+    ret = []
+    for i,samples in enumerate(maps):
+        ret.append(maps[samples][name])
+    return ret
 
 
 def flatten_extend(matrix):
@@ -104,22 +117,6 @@ def sanatize_labels(labels):
                     labels[study][sample]['treatment'][index] = 'salt'
                 if st:
                     break
-
-
-            # if labels[study][sample]['tissue'] is None:
-            #     labels[study][sample]['tissue'] = 'unknown'
-            # for index in range(len(labels[study][sample]['tissue'])):
-            #     labels[study][sample]['tissue'] = labels[study][sample]['tissue'].replace(' ','_')
-            #     labels[study][sample]['tissue'] = labels[study][sample]['tissue'].replace('plants','plant')
-            #     labels[study][sample]['tissue'] = labels[study][sample]['tissue'].replace('leaves','leaf')
-            #     labels[study][sample]['tissue'] = labels[study][sample]['tissue'].replace('rossete','rosette')
-            #     tissue = labels[study][sample]['tissue']
-            #     if 'rosette' in tissue:
-            #         labels[study][sample]['tissue'] = 'rosette'
-                
-            #     if 'seedling' in tissue:
-            #         labels[study][sample]['tissue'] = 'seedling'
-            # labels[study][sample]['tissue']
     return labels
 
 def save_json(object,name, path):
@@ -162,20 +159,9 @@ def keys_upper(test_dict):
         else:
             res[key.upper()] = test_dict[key]
     return res
-def get_biggest_studies(labels,sample_index,k):
-    studies_map,counts =np.unique(np.array(labels),return_counts = True)
-    s = list(zip(studies_map,counts))
-    s.sort(key=lambda x: x[1],reverse=True)
-    s = s[:k]
-    s= list(map(lambda x: x[0],s))
-    mask =list(map(lambda x: x in s,labels))#TODO: make this a mask with true being the largest studies
-    studies = np.unique(np.array(labels)[list(mask)])
-    samples = []
-    for s in studies:
-        index = labels.index(s)
-        samples.append((sample_index[index],s))
-    x = 0
-    return samples
+
+
+
 def get_incomplete_studies(maps,sample_index,label):
     mask = list(map(lambda x: x is None,maps[label]))
     studies = np.unique(np.array(maps['study'])[list(mask)])
@@ -183,7 +169,6 @@ def get_incomplete_studies(maps,sample_index,label):
     for s in studies:
         index = maps['study'].index(s)
         samples.append(sample_index[index])
-    x = 0
     return samples
 
 def load_labels_study(path):
@@ -218,3 +203,91 @@ def plot_pie_chart(data,path):
     plt.tight_layout()
     plt.savefig(f'{path}/pie.svg')
     plt.close()
+
+def fuse_columns_by_sample(df):
+    """
+    Identifies columns with patterns and fuses them based on common name2:
+    - Fuses {name1}_{name2}.1 with {name1}_{name2}
+    - Also fuses columns that share the same name2 part
+    
+    Parameters:
+    df (pd.DataFrame): Input dataframe
+    
+    Returns:
+    pd.DataFrame: Dataframe with fused columns
+    """
+    
+    result_df = df.copy()
+    all_columns = result_df.columns.tolist()
+    columns_to_drop = []
+    fused_pairs = []
+    
+    # Pattern for .1 duplicates
+    pattern_duplicate = re.compile(r'^(.+)\.1$')
+    
+    # Pattern to extract name2 (the part after last underscore)
+    def extract_name_parts(column_name):
+        """Extract name1 and name2 from column name"""
+        if '_' in column_name:
+            # Split by underscore and get the last part as name2
+            parts = column_name.split('_')
+            name1 = '_'.join(parts[:-1])  # Everything before last underscore
+            name2 = parts[-1]  # Last part after last underscore
+            # Remove .1 suffix if present
+            if name2.endswith('.1'):
+                name2 = name2[:-2]
+            return name1, name2
+        return None, None
+    
+    # First pass: handle .1 duplicates (original behavior)
+    for col in all_columns:
+        match = pattern_duplicate.match(col)
+        if match:
+            base_col_name = match.group(1)
+            if base_col_name in all_columns and base_col_name not in columns_to_drop:
+                result_df[base_col_name] = result_df[[base_col_name, col]].mean(axis=1, skipna=True)
+                columns_to_drop.append(col)
+                fused_pairs.append((base_col_name, col))
+    
+    # Update columns list after first pass
+    current_columns = [col for col in result_df.columns if col not in columns_to_drop]
+    
+    # Second pass: group columns by name2 and fuse them
+    name2_groups = defaultdict(list)
+    
+    # Group columns by their name2 part
+    for col in current_columns:
+        name1, name2 = extract_name_parts(col)
+        if name2 is not None:
+            name2_groups[name2].append(col)
+    
+    # Fuse columns that share the same name2
+    for name2, columns in name2_groups.items():
+        if len(columns) > 1:
+            print(f"Fusing columns with same name2 '{name2}': {columns}")
+            
+            # Use the first column as the base for fusion
+            base_col = columns[0]
+            cols_to_fuse = columns[1:]
+            
+            # Calculate average of all columns with same name2
+            result_df[base_col] = result_df[columns].mean(axis=1, skipna=True)
+            
+            # Mark other columns for removal
+            columns_to_drop.extend(cols_to_fuse)
+            
+            for col in cols_to_fuse:
+                fused_pairs.append((base_col, col))
+    
+    # Drop all marked columns
+    result_df = result_df.drop(columns=columns_to_drop)
+    
+    # Print summary
+    if fused_pairs:
+        print(f"\nFused {len(fused_pairs)} column pairs:")
+        for base, duplicate in fused_pairs:
+            print(f"  '{base}' + '{duplicate}' -> '{base}'")
+    else:
+        print("No column pairs found for fusion")
+    
+    return result_df

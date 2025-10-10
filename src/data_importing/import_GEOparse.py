@@ -8,7 +8,7 @@ module_dir = './'
 sys.path.append(module_dir)
 from src.constants import *
 # It's assumed your 'helpers.py' file with 'get_geo_list' exists in the same directory.
-from helpers import get_geo_list,mapping
+from data_importing.helpers import get_geo_list,mapping
 
 # --- Configuration ---
 # Set up basic logging to track progress and errors

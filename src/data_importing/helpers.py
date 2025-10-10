@@ -179,37 +179,6 @@ def hierarchical_clustering_plot(data_matrix:np.array, path:str, name:str):
     plt.savefig(path+'cluster_ordered_'+name+'.svg')
     plt.close()
 
-
-# def box_plot(df: pd.DataFrame, cols_per_plot:int, out_path: str):
-#     num_cols = len(df.columns)
-#     num_plots = math.ceil(num_cols / cols_per_plot)  # Calculate number of plots needed
-#     # Create directory for this group
-#     plot_path = os.path.join(out_path)
-#     os.makedirs(plot_path, exist_ok=True)  # exist_ok prevents errors if dir exists
-
-#     for plot_num in range(num_plots):
-#         # Calculate start and end column indices for this plot
-#         start_idx = plot_num * cols_per_plot
-#         end_idx = min((plot_num + 1) * cols_per_plot, num_cols)
-        
-        
-#         # Create figure with appropriate size
-#         plt.figure(figsize=(20, 10))  # Adjust size as needed
-#         plt.ylim(-18, 18)
-#         # Get columns for this plot and create boxplot
-#         current_cols = df.iloc[:, start_idx:end_idx]
-#         plt.boxplot(current_cols, labels=current_cols.columns)
-        
-#         # Rotate x-axis labels for better readability
-#         plt.xticks(rotation=45, ha='right')
-        
-#         # Add title and adjust layout
-#         plt.title(f'Boxplot Group {plot_num + 1} (Columns {start_idx + 1}-{end_idx})')
-#         plt.tight_layout()  # Prevents label cutoff
-        
-#         # Save and close
-#         plt.savefig(os.path.join(plot_path, f'boxplot_group_{plot_num + 1}.png'))
-#         plt.close()
 def box_plot(df: pd.DataFrame, cols_per_plot: int, out_path: str):
     """
     Generates and saves boxplots from a DataFrame, with visual separators between studies.

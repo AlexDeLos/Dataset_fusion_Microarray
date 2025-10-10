@@ -1,4 +1,3 @@
-import glob
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,11 +8,12 @@ import sys
 module_dir = './'
 sys.path.append(module_dir)
 from src.constants import *
-from helpers import get_first_indexs, apply_KNN_impute,box_plot
+from src.data_importing.helpers import get_first_indexs, apply_KNN_impute,box_plot
+from src.data_analisys.utils.cluster_exploration_utils import *
 
 
 def run_preprocessing(
-    plot_nan = False,
+    plot_nan = True,
     plot_boxPlots = True,
     no_change = False):
 
@@ -25,12 +25,19 @@ def run_preprocessing(
     os.makedirs(out_path, exist_ok=True)
 
     try:
+        # raise FileNotFoundError
         filtered_df = pd.read_csv(path+'filter.csv', index_col=0)
+        # filtered_df_og = pd.read_csv('./data/downloads/old_plocessed_data/'+'filter.csv', index_col=0)
+        # filtered_df_og.columns = list(map(lambda x: x.split('_')[2]+'_'+x.split('_')[0],filtered_df_og.columns))
         print('succesfully loaded data')
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
+        
         big_df = pd.read_csv(COMBINED_DATA_OUTPUT_FILE,index_col=0)
+        # big_df = pd.read_csv('./data/downloads/old_plocessed_data/df_last.csv',index_col=0)
+        # big_df.columns = list(map(lambda x: x.split('_')[2]+'_'+x.split('_')[0],big_df.columns))
+        big_df = fuse_columns_by_sample(big_df)
         # filter the data on 20%
         nan_percentage_genes = big_df.isna().mean(axis=1) * 100
 
@@ -83,7 +90,7 @@ def run_preprocessing(
         # Create directory if it doesn't exist
         os.makedirs(out_path+'row', exist_ok=True)
         os.makedirs(out_path+'col', exist_ok=True)
-        for i,c in enumerate(indices):
+        for i,_ in enumerate(indices):
             min_var = indices[i]
             try:
                 max_var = indices[i+1]
@@ -93,13 +100,13 @@ def run_preprocessing(
             plt.ylim(0,1850)
             plt.xlabel('Genes')
             plt.ylabel('Missing number of data points')
-            plt.savefig(out_path+'row/0.row_dis'+chromosomes[i]+'.svg')
+            plt.savefig(out_path+'row/row_dis'+chromosomes[i]+'.svg')
             plt.close()
 
         plt.bar(range(len(col_nan_count.index)),col_nan_count.values)
         plt.xlabel('Experiments')
         plt.ylabel('Missing number of data points')
-        plt.savefig(out_path+'col/0.col_dis.svg')
+        plt.savefig(out_path+'col/col_dis.svg')
         plt.close()
 
 

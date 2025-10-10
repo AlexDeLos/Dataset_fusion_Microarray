@@ -5,19 +5,28 @@ from rpy2.robjects import pandas2ri, Formula
 from rpy2.robjects.conversion import localconverter
 from rpy2.robjects.packages import importr
 import os
+import sys
+module_dir = './'
+sys.path.append(module_dir)
+from src.constants import *
 
 def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None, pure=False,tissue=None,filter_low_combination:int = 10):
-    out_path: str = f'{out_dir}'
-    os.makedirs(out_path,exist_ok=True)
+    output_dir: str = f'{out_dir}'
+    os.makedirs(output_dir,exist_ok=True)
     for treatment in treatments:
         try:
+            output_filename = f"{tissue if tissue is not None else 'All-Tissues'}_{treatment}"
+            file_to_output = f"{output_dir}{output_filename}_genes.csv"
             print(f"--- Starting analysis for treatment: {treatment} across all tissues ---")
+            if os.path.isfile(file_to_output):
+                print(f"+++ File already exists, skipping it to save time  +++")
+                continue
 
             # 1. Load and prepare data and design files
-            data = pd.read_csv(f'{save_dir}/{data_type}.csv', index_col='ID_REF')
-            data.columns = [col.split('_')[0] for col in data.columns]
+            data = pd.read_csv(f'{save_dir}/{data_type}.csv', index_col=0)
+            data.columns = [col.split('_')[-1] for col in data.columns]
 
-            design = pd.read_csv('outputs/data_outputs/1.0-complete-corrected/labels.csv')
+            design = pd.read_csv(f'{CLUSTER_EXPLORATION_FIGURES_DIR}{EXPERIMENT_NAME}-complete-{data_type}/labels.csv')
 
             # 2. Create masks for the target treatment and control samples
             if tissue:
@@ -25,7 +34,7 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
             else:
                 is_tissue = design['TISSUE'].str.contains('', na=False)
             is_treatment = design['TREATMENT'].str.contains(treatment, na=False)
-            is_only_treatment = design['TREATMENT'].apply(lambda x: len(x) == len(treatment)+4 and treatment in x)
+            is_only_treatment = design['TREATMENT'].apply(lambda x: len(x) == len(treatment)+5 and treatment in x)
             if pure:
                 is_treatment = is_only_treatment
             is_control = design['TREATMENT'].str.contains("No stress", na=False)
@@ -44,13 +53,14 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
             design_filtered = design_filtered[design_filtered['sample_id'].isin(common_samples)]
             data_filtered = data[common_samples]
             
+            # drop duplicate columns
+            data_filtered= data_filtered.T.drop_duplicates().T
+            design_filtered = design_filtered.drop_duplicates()
+
             design_filtered = design_filtered.sort_values(by='sample_id').reset_index(drop=True)
             design_filtered = design_filtered.groupby(['TREATMENT','TISSUE']).filter(lambda x: len(x) >= filter_low_combination)
             data_filtered = data_filtered[design_filtered['sample_id']]
             
-            # drop duplicate columns
-            data_filtered= data_filtered.T.drop_duplicates().T
-            design_filtered = design_filtered.drop_duplicates()
 
             print(f"Found and aligned {len(design_filtered)} samples for '{treatment}' vs. 'No stress'.")
             
@@ -65,7 +75,10 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
                 single_tissue = True
                 del metadata['Tissue']
 
-            
+            if len(set(metadata['Target']))==1:
+                print(f"+++ No enogh samples for this treatment need at least {filter_low_combination}, skiping it  +++")
+                continue
+
             
             # 5. Import R libraries
             base = importr('base')
@@ -120,15 +133,13 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
             # 11. Extract and save results
             print("Extracting results...")
             r_output = limma.topTreat(fit2, coef=1, genelist=genes, number=np.inf)
-            
-            output_filename = f"{tissue if tissue is not None else 'All-Tissues'}_{treatment}"
-            writexl.write_xlsx(r_output, f"{out_path}/{output_filename}.xlsx")
+            writexl.write_xlsx(r_output, f"{output_dir}{output_filename}.xlsx")
 
-            diff_exp_results = pd.read_excel(f"{out_path}/{output_filename}.xlsx")
+            diff_exp_results = pd.read_excel(f"{output_dir}{output_filename}.xlsx")
             significant_genes = diff_exp_results.sort_values(by=['adj.P.Val'])
             # genes_to_save = significant_genes[significant_genes['adj.P.Val']<0.05][['ID','t','logFC','adj.P.Val']]
             genes_to_save = significant_genes[['ID','t','logFC','adj.P.Val']]
-            genes_to_save.to_csv(f"{out_path}/{output_filename}_genes.csv", index=False)
+            genes_to_save.to_csv(f"{output_dir}{output_filename}_genes.csv", index=False)
             print(f"✅ Successfully completed analysis for '{treatment}'. Results saved.")
 
         except Exception as e:

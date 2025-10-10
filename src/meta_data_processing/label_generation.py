@@ -2,13 +2,15 @@ import json
 import os
 from tqdm import tqdm
 # from extraction_test_core import *
-from utils.extractors_full import *
-from utils.llm_utils import get_condensed_labels
-from utils.classes import LabelMap
 import sys
 module_dir = './'
 sys.path.append(module_dir)
+from src.meta_data_processing.utils.extractors_full import *
+from src.meta_data_processing.utils.llm_utils import get_condensed_labels
+from src.meta_data_processing.utils.classes import LabelMap
 from src.constants import *
+from src.meta_data_processing.utils.llm_utils import get_condensed_labels
+from src.meta_data_processing.utils.classes import LabelMap
 
 
 def load_labels_study(path):
@@ -30,15 +32,7 @@ def load_json(path:str):
 
 def condense_labels(Studies=Studies,in_folder=f'{METADATA_OUTPUT_DIR}/study_batch_metadata/', saving_path=LABELS_PATH,llm_grounding:bool = True):
     os.makedirs(saving_path,exist_ok=True)
-    try:
-        labels = load_labels_study(saving_path)
-        raise ValueError()
-    except:
-        labels= {}
-    
-
-    # with open('constants/sample_list.json', 'r') as file:
-    #     list_of_samples = json.load(file)
+    labels= {}
     seen = LabelMap('./data/maps')
     for file in tqdm(os.listdir(in_folder)):
         if file.endswith('.json'):
