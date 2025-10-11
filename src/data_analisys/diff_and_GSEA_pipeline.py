@@ -10,8 +10,13 @@ from src.data_analisys.diff_exp_and_enrichment.plot_enrichment import plot_enric
 from src.data_analisys.diff_exp_and_enrichment.diff_expr import diff_exp_combine_tissues
 
 
-def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,data_types = ['2_way_norm', 'imputed', 'study_corrected','robust', 'standardized'],pures = [True,False],
-                                Fulls = [True,False],filter_low_combination = [15,10,0],tissues = [None,'leaf'], just_plot=False):    
+def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
+                                data_types = ['2_way_norm','study_corrected','imputed', 'robust', 'standardized', 'robust+', 'standardized+'],
+                                pures = [True,False],
+                                Fulls = [True,False],
+                                filter_low_combination = [15,10,0],
+                                tissues = [None,'leaf'],
+                                just_plot=False):    
     for fil in filter_low_combination:
         for data_type in data_types:
             for pure in pures:

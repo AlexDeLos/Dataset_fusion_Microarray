@@ -69,7 +69,7 @@ def run_label_cluster_exploration():
     full_scores = {}
     full_scores_sil = {}
     full_scores_w_study = {}
-    TYPES = ['2_way_norm','study_corrected','imputed', 'robust', 'standardized']
+    TYPES = ['robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed']
     # LINK_METHODS = ['single','complete','average','weighted','centroid','median']
 
     LINK_METHODS = ['complete']
@@ -248,27 +248,27 @@ def run_label_cluster_exploration():
         #     #     else:
         #     #         full_scores_sil[f'{type_} val {k}'] = sil_scores[i][k]
         
-        plt.bar(range(len(full_scores)), list(full_scores.values()), align='center')
-        plt.xticks(range(len(full_scores)), list(full_scores.keys()),rotation = 90)
-        plt.tight_layout()
-        plt.title('rand ind score')
-        plt.savefig(f'{figure_out_path}/bar_rand_ind.svg')
-        plt.close()
+    plt.bar(range(len(full_scores)), list(full_scores.values()), align='center')
+    plt.xticks(range(len(full_scores)), list(full_scores.keys()),rotation = 90)
+    plt.tight_layout()
+    plt.title('rand ind score')
+    plt.savefig(f'{CLUSTER_EXPLORATION_FIGURES_DIR}/{EXPERIMENT_NAME}/bar_rand_ind.svg')
+    plt.close()
 
-        plt.bar(range(len(full_scores_sil)), list(full_scores_sil.values()), align='center')
-        plt.xticks(range(len(full_scores_sil)), list(full_scores_sil.keys()),rotation = 90)
-        plt.tight_layout()
-        plt.title('silhouette score')
-        plt.savefig(f'{figure_out_path}/bar_silhouette.svg')
-        plt.close()
+    plt.bar(range(len(full_scores_sil)), list(full_scores_sil.values()), align='center')
+    plt.xticks(range(len(full_scores_sil)), list(full_scores_sil.keys()),rotation = 90)
+    plt.tight_layout()
+    plt.title('silhouette score')
+    plt.savefig(f'{CLUSTER_EXPLORATION_FIGURES_DIR}/{EXPERIMENT_NAME}/bar_silhouette.svg')
+    plt.close()
 
 
-        plt.bar(range(len(full_scores_w_study)), list(full_scores_w_study.values()), align='center')
-        plt.xticks(range(len(full_scores_w_study)), list(full_scores_w_study.keys()),rotation = 90)
-        plt.tight_layout()
-        plt.title('rand ind score study')
-        plt.savefig(f'{figure_out_path}/bar_rand_ind_study.svg')
-        plt.close()
+    plt.bar(range(len(full_scores_w_study)), list(full_scores_w_study.values()), align='center')
+    plt.xticks(range(len(full_scores_w_study)), list(full_scores_w_study.keys()),rotation = 90)
+    plt.tight_layout()
+    plt.title('rand ind score study')
+    plt.savefig(f'{CLUSTER_EXPLORATION_FIGURES_DIR}/{EXPERIMENT_NAME}/bar_rand_ind_study.svg')
+    plt.close()
 
 if __name__ =='__main__':
     run_label_cluster_exploration()

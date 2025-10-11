@@ -155,6 +155,7 @@ def run_preprocessing(
             batches.append(d[el])
         study_corrected_df:pd.DataFrame = pycombat_norm(df_impute, batches)
         study_corrected_df.to_csv(path+'study_corrected.csv')
+
     try:
         standardized_df = pd.read_csv(path+'/standardized.csv', index_col=0)
     except FileNotFoundError:
@@ -183,6 +184,23 @@ def run_preprocessing(
         double_norm = pd.DataFrame(norm, columns=study_corrected_df.columns,index=study_corrected_df.index)
         double_norm.to_csv(path+'/2_way_norm.csv')
 
+# double_norm
+    try:
+        standardized_df_ = pd.read_csv(path+'/standardized+.csv', index_col=0)
+    except FileNotFoundError:
+        if no_change:
+            raise FileNotFoundError
+        standardized_df_ = ((study_corrected_df.T - study_corrected_df.T.mean()) / study_corrected_df.T.std()).T
+        standardized_df_.to_csv(path+'/standardized+.csv')
+    try:
+        robust_df_ = pd.read_csv(path+'/robust+.csv', index_col=0)
+    except FileNotFoundError:
+        if no_change:
+            raise FileNotFoundError
+        scaler_ = RobustScaler()
+        robust_df_ = pd.DataFrame(scaler_.fit_transform(study_corrected_df), columns=study_corrected_df.columns)
+        robust_df_.to_csv(path+'/robust+.csv')
+    
     
     if plot_boxPlots:
         box_plot(df_impute,120, out_path+'/uncorrected_box_plots/')
@@ -190,6 +208,8 @@ def run_preprocessing(
         box_plot(double_norm,120, out_path+'/2_way_norm_plots/')
         box_plot(robust_df,120, out_path+'/robust/')
         box_plot(standardized_df,120,out_path+'/standardized/')
+        box_plot(robust_df_,120, out_path+'/robust+/')
+        box_plot(standardized_df_,120,out_path+'/standardized+/')
     print('Done')
 
 if __name__ == '__main__':
