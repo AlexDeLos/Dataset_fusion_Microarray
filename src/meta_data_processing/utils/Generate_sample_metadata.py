@@ -8,7 +8,6 @@ def generate_metadata(folder_path = '/home/alex/Documents/GitHub/Data_collection
     
     # Studies = ['GSE44053']
     study_metdata = dict.fromkeys(Studies,None)
-    # while index<len(API_KEYS)-1:
     for file in tqdm(os.listdir(folder_path)):
         if file.endswith('.json'):
             file_path = os.path.join(folder_path, file)
