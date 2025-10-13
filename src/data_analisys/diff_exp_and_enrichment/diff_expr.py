@@ -24,9 +24,12 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
 
             # 1. Load and prepare data and design files
             data = pd.read_csv(f'{save_dir}/{data_type}.csv', index_col=0)
-            data.columns = [col.split('_')[-1] for col in data.columns]
+            if data_type == '2_way_norm_og':
+                data.columns = [col.split('_')[0] for col in data.columns]
+            else:
+                data.columns = [col.split('_')[-1] for col in data.columns]
 
-            design = pd.read_csv(f'{CLUSTER_EXPLORATION_FIGURES_DIR}{EXPERIMENT_NAME}-complete-{data_type}/labels.csv')
+            design = pd.read_csv(f'{CLUSTER_EXPLORATION_FIGURES_DIR}{EXPERIMENT_NAME}/labels.csv')
 
             # 2. Create masks for the target treatment and control samples
             if tissue:
@@ -34,7 +37,7 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
             else:
                 is_tissue = design['TISSUE'].str.contains('', na=False)
             is_treatment = design['TREATMENT'].str.contains(treatment, na=False)
-            is_only_treatment = design['TREATMENT'].apply(lambda x: len(x) == len(treatment)+5 and treatment in x)
+            is_only_treatment = design['TREATMENT'].apply(lambda x: len(x) == len(treatment)+4 and treatment in x)
             if pure:
                 is_treatment = is_only_treatment
             is_control = design['TREATMENT'].str.contains("No stress", na=False)

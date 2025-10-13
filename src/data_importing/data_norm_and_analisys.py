@@ -13,8 +13,8 @@ from src.data_analisys.utils.cluster_exploration_utils import *
 
 
 def run_preprocessing(
-    plot_nan = True,
-    plot_boxPlots = True,
+    plot_nan = False,
+    plot_boxPlots = False,
     no_change = False):
 
     path = PROCESSED_DATA_FOLDER
@@ -169,7 +169,7 @@ def run_preprocessing(
         if no_change:
             raise FileNotFoundError
         scaler = RobustScaler()
-        robust_df = pd.DataFrame(scaler.fit_transform(df_impute), columns=df_impute.columns)
+        robust_df = pd.DataFrame(scaler.fit_transform(df_impute), columns=df_impute.columns,index = df_impute.index)
         robust_df.to_csv(path+'/robust.csv')
     
     try:
@@ -198,7 +198,7 @@ def run_preprocessing(
         if no_change:
             raise FileNotFoundError
         scaler_ = RobustScaler()
-        robust_df_ = pd.DataFrame(scaler_.fit_transform(study_corrected_df), columns=study_corrected_df.columns)
+        robust_df_ = pd.DataFrame(scaler_.fit_transform(study_corrected_df), columns=study_corrected_df.columns,index=study_corrected_df.index)
         robust_df_.to_csv(path+'/robust+.csv')
     
     

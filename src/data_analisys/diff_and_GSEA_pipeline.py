@@ -11,7 +11,7 @@ from src.data_analisys.diff_exp_and_enrichment.diff_expr import diff_exp_combine
 
 
 def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
-                                data_types = ['2_way_norm','study_corrected','imputed', 'robust', 'standardized', 'robust+', 'standardized+'],
+                                data_types = ['2_way_norm','study_corrected','2_way_norm_og','imputed','standardized',  'standardized+', 'robust', 'robust+'],
                                 pures = [True,False],
                                 Fulls = [True,False],
                                 filter_low_combination = [15,10,0],
@@ -22,7 +22,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
             for pure in pures:
                 for Full in Fulls:
                     for tissue in tissues:
-                        exp_name = f'{EXPERIMENT_NAME}_{tissue if tissue else 'All_tissues'}_{'full' if Full else 'sanity'}_{'pure' if pure else 'mixed'}_min_group_{fil}'
+                        exp_name = f'{EXPERIMENT_NAME}_{data_type}_{tissue if tissue else 'All_tissues'}_{'full' if Full else 'sanity'}_{'pure' if pure else 'mixed'}_min_group_{fil}'
                         treatments = [
                             "Drought Stress",
                             "Salinity Stress",
@@ -30,10 +30,10 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                             "Cold Stress",
                             # "Chemical Stress",
                             # "Pathogen Attack",
-                            "Low Light Stress",
+                            # "Low Light Stress",
                             "High Light Stress",
-                            "Red Light Stress",
-                            "Other Light Stress"
+                            # "Red Light Stress",
+                            # "Other Light Stress"
                             ]
                         diff_exp_out_dir = f'{FIGURES_DIR}dif_expression_results/{exp_name}/'
                         if not just_plot:
@@ -70,7 +70,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                     gsea_results_df = perform_gsea_enrichment(
                                         ranked_gene_df = diff_exp_results,
                                         gene_col = 'ID',         # The column with AGI codes in your data
-                                        rank_col = 'rank',      # The column to rank by (logFC is perfect for this)
+                                        rank_col = 'rank',       # The column to rank by (logFC is perfect for this)
                                         obodag = obodag,
                                         geneid2gos = geneid2gos,
                                         keys = ids,
@@ -89,7 +89,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                     gsea_results_df = pd.read_csv(f'{out_path}{stress}_gsea_go_enrichment_results.csv')
                                 
                                 plot_enrichment_scatter_interactive_2(gsea_results_df,save_path=f'{FIGURES_DIR}plots_enrichment_old/{exp_name.split('_')[0]}/{'full' if Full else 'sanity'}/{tissue if tissue is not None else 'All-Tissues'}/{data_type}/{fil}/{'pure' if pure else 'mixed'}/{stress}.html',
-                                                                    title=f'GSEA for {stress} on {tissue if tissue is not None else 'All-Tissues'} on {'full' if Full else 'sanity'} with {'pure' if pure else 'mixed'} treatments with a filter of >{fil}',treatments = treatments)
+                                                                    title=f'GSEA for {stress} on {tissue if tissue is not None else 'All-Tissues'} on {'full' if Full else 'sanity'} with {'pure' if pure else 'mixed'} treatments with a filter of >{fil}',treatments = treatments, normalizations=data_types)
 
 
                             except Exception as e:

@@ -10,9 +10,11 @@ from itertools import compress
 from sklearn.decomposition import PCA  # to apply PCA
 import umap
 import sys
+import gc # Import the garbage collection module
+
 module_dir = './'
 sys.path.append(module_dir)
-from src.data_analisys.utils.plot_utils import plot_tsne,get_Umap_3,plot_heat_map, plot_dendogram
+from src.data_analisys.utils.plot_utils import plot_tsne,get_Umap_3,plot_heat_map, plot_dendogram,plot_summary_scores,plot_iteration_scores
 from src.constants import *
 from src.data_analisys.utils.cluster_exploration_utils import *
 
@@ -55,53 +57,92 @@ def plot_var(df,path):
     # plt.plot(np.array(df.var()))
     plt.savefig(f'{path}/gene_var.svg')
     plt.close()
-
-# def get_study(sample: str):
-#     return sample.split('_')[0]
-
-def run_label_cluster_exploration():
+    
+def run_label_cluster_exploration(fil=0):
     labels = load_labels_study(LABELS_PATH)
-    labels = keys_upper(labels) 
+    labels = keys_upper(labels)
     # Fuse the labels
 
-    labels_types = ['TREATMENT','TISSUE']#,'MEDIUM']
+    labels_types = ['TREATMENT','TISSUE','MEDIUM']
     labels_df = make_df_from_labels(labels, labels_types)
+    del labels # Delete original labels dictionary as it's no longer needed
+
+
+    labels_df['TREATMENT'] = labels_df['TREATMENT'].apply(lambda x: tuple(sorted(x)))
+    labels_df['ID'] = labels_df.index
+    labels_df.drop_duplicates(inplace=True)
+    del labels_df['ID']
+    labels_df['TREATMENT'] = labels_df['TREATMENT'].apply(lambda x: list(sorted(x)))
+    outputr = f'{CLUSTER_EXPLORATION_FIGURES_DIR}{EXPERIMENT_NAME}'
+    labels_df.to_csv(f'{outputr}/labels.csv')
+
     full_scores = {}
     full_scores_sil = {}
     full_scores_w_study = {}
-    TYPES = ['robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed']
+    TYPES = ['2_way_norm_og','robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed']#TODO: fix the columns '2_way_norm_og']
     # LINK_METHODS = ['single','complete','average','weighted','centroid','median']
 
     LINK_METHODS = ['complete']
+    # for filt in [True,False]:
     for method in LINK_METHODS:
-        experiment_name = f'{EXPERIMENT_NAME}-{method}'
+        experiment_name = f'{method}-{fil}'
         # experiment_name = f'norm_comp_15_BS_{method}'
 
         for type_ in TYPES:
-            figure_out_path:str = f'{CLUSTER_EXPLORATION_FIGURES_DIR}{experiment_name}-{type_}'
+            figure_out_path:str = f'{CLUSTER_EXPLORATION_FIGURES_DIR}{experiment_name}/{type_}'
 
             os.makedirs(figure_out_path,exist_ok=True)
             try:
+                #'/home/alex/Documents/GitHub/Data_collection/df_final' they are the same as _og
                 data_df = pd.read_csv(f'{PROCESSED_DATA_FOLDER}/{type_}.csv', index_col=0)
+                if type_ =='2_way_norm_og':
+                    data_df.columns = list(map(lambda x: f'{x.split('_')[-1]}_{x.split('_')[0]}',data_df.columns))
                 # handel duplicate samples
                 data_df = fuse_columns_by_sample(data_df)
-            except:
-                raise ValueError
+            except FileNotFoundError:
+                print(f"Warning: Data file for '{type_}' not found. Skipping.")
+                continue
+            except Exception as e:
+                print(f"Error loading data for '{type_}': {e}")
+                continue
 
-            # low_sample_study_filter = list(map(lambda x: int(x) if x > 10 else -1,np.unique(np.array(data_df.T.index.map(lambda x: int(x.split('_')[-1]))),return_counts=True)[1]))
-            # TODO filter out the smaller dataset?
-            # Apply filter to df
-            # robust_df.T = robust_df.T.loc[:,robust_df.T.index.map(lambda x: int(x.split('_')[-1]))wait]
+
+            ## ----------------------------------------------------------------
+            ## NEW: Filter out studies with fewer than 5 samples
+            ## ----------------------------------------------------------------
+            print(f"Processing data type: {type_}")
+            print(f"Original shape: {data_df.shape}")
+            # Get the study ID for each sample (column) and wrap in a pandas Series
+            studies_series = pd.Series(get_studies(data_df), index=data_df.columns)
+
+            # Count the number of samples per study
+            study_counts = studies_series.value_counts()
+
+            # Identify studies that have 5 or more samples
+            studies_to_keep = study_counts[study_counts >= fil].index
+
+            # If no studies meet the criteria, skip this entire dataframe type
+            if studies_to_keep.empty:
+                print(f"--> Skipping '{type_}' as no studies have 5 or more samples.")
+                del data_df, studies_series, study_counts
+                gc.collect()
+                continue # Move to the next `type_`
+
+            # Create a boolean mask and apply it to keep only samples from the desired studies
+            mask = studies_series.isin(studies_to_keep)
+            data_df = data_df.loc[:, mask]
+
+            print(f"Filtered shape (studies with >= {fil} samples): {data_df.shape}")
+            ## ----------------------------------------------------------------
+            ## End of new filtering logic
+            ## ----------------------------------------------------------------
+
 
             samples = get_samples(data_df)
             studies = get_studies(data_df)
 
             # Save the labels of only the samples I use
             labels_df[labels_df.index.isin(samples)]
-            labels_df['TREATMENT'] = labels_df['TREATMENT'].apply(lambda x: tuple(sorted(x)))
-            labels_df['ID'] = labels_df.index
-            labels_df.drop_duplicates(inplace=True)
-            del labels_df['ID']
             labels_df.to_csv(f'{figure_out_path}/labels.csv')
             #TODO: investigate the labels that have no sample linked to it
 
@@ -118,23 +159,22 @@ def run_label_cluster_exploration():
             data_pca = pd.DataFrame(data_pca)
             maps = add_map(maps,hierarchy.fcluster(hierarchy.linkage(data_pca, method=linkage_method),t=number_of_clusters,criterion='maxclust'),'PCA')
             plot_dendogram(data_pca,linkage_method,number_of_clusters,figure_out_path,name='50D PCA')
+            del data_pca # Free memory from PCA results
 
 
             reducer = umap.UMAP(n_epochs=200,n_neighbors=500, min_dist= 0.5)
             embedding = reducer.fit_transform(data_df.T.to_numpy())
             plot_dendogram(embedding,linkage_method,number_of_clusters,figure_out_path,name='Umap 2D embeding')
-
             maps = add_map(maps,hierarchy.fcluster(hierarchy.linkage(embedding, method=linkage_method),t=number_of_clusters,criterion='maxclust'),'emb_2D')
-
 
             reducer = umap.UMAP(n_epochs=200,n_neighbors=500, min_dist= 0.5,n_components=50)
             embedding_50 = reducer.fit_transform(data_df.T.to_numpy())
             new_temp = hierarchy.linkage(embedding_50, method=linkage_method)
 
             plot_dendogram(embedding_50,linkage_method,number_of_clusters,figure_out_path,name='Umap 50D embeding')
-
             maps = add_map(maps,hierarchy.fcluster(new_temp,t=number_of_clusters,criterion='maxclust'),'emb_50D')
-
+            del embedding_50 # Free memory from 50D UMAP embedding
+            del new_temp # Free memory from linkage matrix
 
             temp_old = hierarchy.linkage(data_df.T.to_numpy(), method=linkage_method)
             cluster = hierarchy.fcluster(temp_old,t=number_of_clusters,criterion='maxclust') #len(np.unique(study_map))
@@ -145,6 +185,7 @@ def run_label_cluster_exploration():
                 linkage = hierarchy.linkage(data.T.to_numpy(), method=linkage_method)
                 cluster = hierarchy.fcluster(linkage,t=0.1,criterion='inconsistent')
                 # calculate the fitnes of that number
+                del linkage # Free memory from linkage matrix inside function
                 return cluster
             cluster = get_optimal_clusters(data_df)
             maps = add_map(maps,cluster,'clusters_use')
@@ -153,6 +194,8 @@ def run_label_cluster_exploration():
             # # maps['clusters_1'] = cluster_1
                 # del maps['study']
                 del maps[sample]['clusters']
+                del maps[sample]['clusters_use']
+                del maps[sample]['MEDIUM']
                 # del maps['tissue']
                 del maps[sample]['PCA']
                 del maps[sample]['emb_2D']
@@ -170,8 +213,11 @@ def run_label_cluster_exploration():
             scores = list(map(lambda x: {x:adjusted_rand_score(
                 hierarchy.fcluster(temp_old,t=len(np.unique(get_map(maps,x))),criterion='maxclust'),get_map(maps,x)
                 )}, maps[exmaple_sample]))
+
+            del temp_old # Free memory from the large linkage matrix
+
             scores_with_study = list(map(lambda x: {x:adjusted_rand_score(get_map(maps,'study'),get_map(maps,x))}, maps[exmaple_sample]))
-            
+
             sil_scores = list(map(lambda x: {x:silhouette_score(data_df.T.to_numpy(),labels=get_map(maps,x))}, maps[exmaple_sample]))
 
             #TODO: re-add this
@@ -182,12 +228,9 @@ def run_label_cluster_exploration():
             #     maps_tissue = apply_mask_to_maps(maps,mask_tissue)#TODO: this needs to be fixed to the new maps object
 
             #     scores.append({f'treatment_{tissue}': adjusted_rand_score(hierarchy.fcluster(temp_treatment,t=len(np.unique(maps_tissue['TREATMENT'])),criterion='maxclust'),maps_tissue['TREATMENT'])})
-                
+
             #     sil_scores.append({f'treatment_{tissue}':silhouette_score(tiss_df.T.to_numpy(),labels=maps_tissue['TREATMENT'])})
-            
-            # Perform UMAP transformation
-            reducer = umap.UMAP(n_epochs=200,n_neighbors=500, min_dist= 0.5)
-            embedding = reducer.fit_transform(data_df.T.to_numpy())
+
             for i,key in enumerate(maps[exmaple_sample]):
                 plot_tsne(
                     df=data_df.T,
@@ -200,22 +243,25 @@ def run_label_cluster_exploration():
                 )
                 get_Umap_3(embedding,name=key,colour_map=get_map(maps,key),marker_map=None, title =f'Umap of {key} using {method} linkage', save_loc=f'{figure_out_path}/Umaps')
 
+            del embedding # Free memory from 2D UMAP embedding
 
-            def get_color_df(maps,scores):
+            def get_color_df(maps,scores)->pd.DataFrame:
                 dic = {}
                 col = 0
                 for key in maps[exmaple_sample]:
                     int_map = to_int(get_map(maps,key),name=key,path=figure_out_path)
                     palette = seaborn.color_palette("husl", len(int_map)+1)  # Choose a palette
                     col_colors = [palette[i] for i in int_map]  # Map cluster IDs to colors
-                    dic[f'{key,'{:0.3e}'.format(scores[col][key])}']= col_colors
+                    dic[f'{key,"{:0.3e}".format(scores[col][key])}']= col_colors
                     col = col +1
                 return pd.DataFrame(dic, index=data_df.columns)
             color_df = get_color_df(maps,scores)
-            
-            plot_heat_map(data_df,figure_out_path,cluster=False,col_cluster=False,typ='png',title = 'overview overview study',log_norm=True, col=color_df, name='general_overview_study')
+
+            # plot_heat_map(data_df,figure_out_path,cluster=False,col_cluster=False,typ='png',title = 'overview overview study',log_norm=True, col=color_df, name='general_overview_study')
+
             print(f'rand indx {type_}: {scores}')
             print(f'sil {type_}: {sil_scores}')
+
             for i,el in enumerate(scores):
                 key = list(el.keys())[0]
                 if 'cluster' in key:
@@ -231,44 +277,64 @@ def run_label_cluster_exploration():
             for i,el in enumerate(scores_with_study):
                 key = list(el.keys())[0]
                 full_scores_w_study[f'{type_} val {key}'] = scores_with_study[i][key]
-            # for i,k in enumerate(maps):
-            #     if 'cluster' in k:
-        # study_map = list(map(get_study,df_impute.columns))
-        # # raise ValueError("Running in the cluster")
-        # d = dict([(y,x+1) for x,y in enumerate(sorted(set(study_map)))])
-        # batches = []
-        # for el in study_map:
-        #     batches.append(d[el])
-        #     #         pass
-        #     #     else:
-        #     #         full_scores[f'{type_} val {k}'] = scores[i][k]
-        #     # for i,k in enumerate(maps):
-        #     #     if 'cluster' in k:
-        #     #         pass
-        #     #     else:
-        #     #         full_scores_sil[f'{type_} val {k}'] = sil_scores[i][k]
-        
-    plt.bar(range(len(full_scores)), list(full_scores.values()), align='center')
-    plt.xticks(range(len(full_scores)), list(full_scores.keys()),rotation = 90)
-    plt.tight_layout()
-    plt.title('rand ind score')
-    plt.savefig(f'{CLUSTER_EXPLORATION_FIGURES_DIR}/{EXPERIMENT_NAME}/bar_rand_ind.svg')
-    plt.close()
 
-    plt.bar(range(len(full_scores_sil)), list(full_scores_sil.values()), align='center')
-    plt.xticks(range(len(full_scores_sil)), list(full_scores_sil.keys()),rotation = 90)
-    plt.tight_layout()
-    plt.title('silhouette score')
-    plt.savefig(f'{CLUSTER_EXPLORATION_FIGURES_DIR}/{EXPERIMENT_NAME}/bar_silhouette.svg')
-    plt.close()
+            ## ----------------------------------------------------------------
+            ## START: REFACTORED PLOTTING LOGIC
+            ## ----------------------------------------------------------------
+            # Consolidate scores into single dictionaries
+            current_sil_scores = {key: value for score_dict in sil_scores for key, value in score_dict.items()}
+            current_rand_scores = {key: value for score_dict in scores for key, value in score_dict.items()}
 
+            # Call the new plotting function for Silhouette scores
+            plot_iteration_scores(
+                scores_dict=current_sil_scores,
+                y_label='Silhouette Score',
+                title=f'Silhouette Scores for {type_} ({method} linkage)',
+                file_name='silhouette_scores.svg',
+                output_path=figure_out_path
+            )
 
-    plt.bar(range(len(full_scores_w_study)), list(full_scores_w_study.values()), align='center')
-    plt.xticks(range(len(full_scores_w_study)), list(full_scores_w_study.keys()),rotation = 90)
-    plt.tight_layout()
-    plt.title('rand ind score study')
-    plt.savefig(f'{CLUSTER_EXPLORATION_FIGURES_DIR}/{EXPERIMENT_NAME}/bar_rand_ind_study.svg')
-    plt.close()
+            # Call the new plotting function for Rand Index scores
+            plot_iteration_scores(
+                scores_dict=current_rand_scores,
+                y_label='Rand Index Score',
+                title=f'Rand Index Scores for {type_} ({method} linkage)',
+                file_name='rand_index_scores.svg',
+                output_path=figure_out_path
+            )
+            ## ----------------------------------------------------------------
+            ## END: REFACTORED PLOTTING LOGIC
+            ## ----------------------------------------------------------------
 
-if __name__ =='__main__':
+            # Clean up all large objects at the end of the loop iteration
+            del data_df, maps, scores, sil_scores, scores_with_study, color_df, cluster
+            gc.collect() # Trigger garbage collection to free up memory
+
+    # --- FINAL SUMMARY PLOTTING CALLS ---
+    output_dir = f'{CLUSTER_EXPLORATION_FIGURES_DIR}{EXPERIMENT_NAME}/{fil}/'
+
+    # Call the summary plotting function for each score type
+    plot_summary_scores(
+        scores_dict=full_scores,
+        title='Rand Index Score',
+        file_name='bar_rand_ind.svg',
+        output_dir=output_dir
+    )
+
+    plot_summary_scores(
+        scores_dict=full_scores_sil,
+        title='Silhouette Score',
+        file_name='bar_silhouette.svg',
+        output_dir=output_dir
+    )
+
+    plot_summary_scores(
+        scores_dict=full_scores_w_study,
+        title='Rand Index Score vs Study',
+        file_name='bar_rand_ind_study.svg',
+        output_dir=output_dir
+    )
+
+    print("DONE WITH CLUSTER EXPLORATION")
+if __name__ == '__main__':
     run_label_cluster_exploration()
