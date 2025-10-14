@@ -74,6 +74,7 @@ def run_label_cluster_exploration(fil=0):
     del labels_df['ID']
     labels_df['TREATMENT'] = labels_df['TREATMENT'].apply(lambda x: list(sorted(x)))
     outputr = f'{CLUSTER_EXPLORATION_FIGURES_DIR}{EXPERIMENT_NAME}'
+    os.makedirs(outputr,exist_ok=True)
     labels_df.to_csv(f'{outputr}/labels.csv')
 
     full_scores = {}
