@@ -62,6 +62,8 @@ def condense_labels(Studies=Studies,in_folder=f'{METADATA_OUTPUT_DIR}/study_batc
                 if python_object['treatment'] == []:
                     python_object['treatment'] = ['no treatment/control']
                 x=0
+                if "Silwet treatment" in python_object['treatment']:
+                    print(f'study: {study_id} sample: {sample_id}')
                 if llm_grounding and seen.check_past(python_object):
                     condensed = dict(get_condensed_labels(study_info=study_info['study_metadata'], sample_info=python_object))
                     seen.add_mapping(python_object,condensed)
