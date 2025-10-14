@@ -17,4 +17,4 @@ run_label_cluster_exploration(10)
 run_label_cluster_exploration(15)
 
 # RUN DIFF EXP and ENRICHMENT ANALISYS
-# run_diff_exp_and_enrichment()
+run_diff_exp_and_enrichment()
