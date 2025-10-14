@@ -1,6 +1,10 @@
 import pandas as pd
+import uuid
+import matplotlib.pyplot as plt
 import numpy as np
 import os
+from adjustText import adjust_text
+from typing import Optional
 import sys
 module_dir = './'
 sys.path.append(module_dir)
@@ -13,13 +17,14 @@ import numpy as np
 import plotly.graph_objects as go
 import os
 import json
+from typing import Optional, Dict, List, Any
 
 def find_pareto_frontier_indices(df: pd.DataFrame, margin: float = 0.0) -> pd.Index:
     """
     Identifies indices of points on or near the Pareto frontier.
-    We aim to maximize: abs(NES), -log10_FWER_p-val, -log10_qval.
+    We aim to maximize: abs(NES), -log10_qval, -log10_FWER_p-val.
     """
-    values = df[['NES', '-log10_FWER_p-val', '-log10_qval']].copy()
+    values = df[['NES', '-log10_qval', '-log10_FWER_p-val']].copy()
     values['NES'] = values['NES'].abs()
     points = values.to_numpy()
     
@@ -39,7 +44,7 @@ def find_pareto_frontier_indices(df: pd.DataFrame, margin: float = 0.0) -> pd.In
 
 
 ##### NEW plot method:
-def plot_enrichment_scatter_interactive_2(enrichment_df: pd.DataFrame, title: str = "Gene Set Enrichment Analysis", save_path: str = "interactive_plot.html",treatments=None,normalizations=None):
+def plot_enrichment_scatter_interactive(enrichment_df: pd.DataFrame, title: str = "Gene Set Enrichment Analysis", save_path: str = "interactive_plot.html",treatments=None,normalizations=None):
     """
     Generates a self-contained, interactive HTML scatter plot from GSEA results.
 
@@ -60,14 +65,14 @@ def plot_enrichment_scatter_interactive_2(enrichment_df: pd.DataFrame, title: st
     """
     # --- 1. Data Preparation ---
     df = enrichment_df.copy()
-    df['-log10_FWER_p-val'] = -np.log10(df['FWER p-val'].astype(float).replace(0, 1e-10))
     df['-log10_qval'] = -np.log10(df['FDR q-val'].astype(float).replace(0, 1e-10))
+    df['-log10_FWER_p-val'] = -np.log10(df['FWER p-val'].astype(float).replace(0, 1e-10))
     
     df['hover_text'] = df.apply(
         lambda row: f"""<b>{row['Term']}</b><br><br>
 NES: {row['NES']:.3f}<br>
-FWER p-val: {row['FWER p-val']:.3g}<br>
-FDR q-val: {row['FDR q-val']:.3g}
+FDR q-val: {row['FDR q-val']:.3g}<br>
+FWER p-val: {row['FWER p-val']:.3g}
 """,
         axis=1
     )
@@ -82,17 +87,17 @@ FDR q-val: {row['FDR q-val']:.3g}
 
     # Trace 0: Main scatter plot
     fig.add_trace(go.Scatter(
-        x=df['NES'], y=df['-log10_FWER_p-val'], mode='markers', hoverinfo='text',
+        x=df['NES'], y=df['-log10_qval'], mode='markers', hoverinfo='text',
         hovertext=df['hover_text'], name='Gene Sets',
         marker=dict(
-            color=df['-log10_qval'], colorscale='Viridis', showscale=True,
+            color=df['-log10_FWER_p-val'], colorscale='Viridis', showscale=True,
             colorbar=dict(title="-log10(FDR)"), size=8, symbol='circle'
         )
     ))
 
     # Trace 1: Labels for significant terms
     fig.add_trace(go.Scatter(
-        x=df_to_label['NES'], y=df_to_label['-log10_FWER_p-val'], mode='text',
+        x=df_to_label['NES'], y=df_to_label['-log10_qval'], mode='text',
         text=df_to_label['Term'], textposition="top right",
         textfont=dict(size=10, color='#444'), hoverinfo='none', name='Labels',
         visible=True # Initially visible
@@ -136,7 +141,7 @@ FDR q-val: {row['FDR q-val']:.3g}
     )
 
     # Prepare data for JavaScript: a map of Term -> Coordinates
-    coords_data = df[['Term', 'NES', '-log10_FWER_p-val']].to_dict(orient='records')
+    coords_data = df[['Term', 'NES', '-log10_qval']].to_dict(orient='records')
     coords_json = json.dumps(coords_data)
     
     # Create HTML <option> elements for the dropdown
@@ -314,7 +319,7 @@ FDR q-val: {row['FDR q-val']:.3g}
             const plotDivId = '{plot_div_id}';
             const navUrls = {json.dumps(nav_urls)};
 
-            // 2. Create a Map for fast coordinate lookups (Term -> {{NES, -log10_FWER_p-val}})
+            // 2. Create a Map for fast coordinate lookups (Term -> {{NES, -log10_qval}})
             const coordMap = new Map(termData.map(item => [item.Term, item]));
 
             // 3. Initialize the searchable dropdown using Choices.js
@@ -393,7 +398,7 @@ FDR q-val: {row['FDR q-val']:.3g}
                     const data = coordMap.get(term);
                     if (data) {{
                         highlightX.push(data.NES);
-                        highlightY.push(data['-log10_FWER_p-val']);
+                        highlightY.push(data['-log10_qval']);
                     }}
                 }});
 

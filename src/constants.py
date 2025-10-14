@@ -2,13 +2,14 @@ import os
 #NEED TO CHANGE
 GLOBAL_DIR_PATH = F'{os.getcwd()}/'
 
-EXPERIMENT_NAME = '2.0'
+EXPERIMENT_NAME = '2.1_cluster'
 
 
 DATA_IMPORT_DIR = './data/downloads/'
 GEO_DOWNLOAD_DIR = f'{DATA_IMPORT_DIR}geo_downloads/'
 METADATA_OUTPUT_DIR = f'{DATA_IMPORT_DIR}metadata/'
-PROCESSED_DATA_FOLDER = f'{DATA_IMPORT_DIR}processed_data/'
+# PROCESSED_DATA_FOLDER = f'{DATA_IMPORT_DIR}processed_data/'
+PROCESSED_DATA_FOLDER = '/tudelft.net/staff-umbrella/AT GE Datasets/process_data_final/processed_data'
 COMBINED_DATA_OUTPUT_FILE = f'{PROCESSED_DATA_FOLDER}combined_expression_data.csv'
 CORE_DATA_DIR = './data/core_data/'
 SOFT_PATH = f'{CORE_DATA_DIR}old_geo_downloads/'

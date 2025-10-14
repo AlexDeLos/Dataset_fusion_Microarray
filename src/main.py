@@ -7,13 +7,13 @@ from meta_data_processing.label_generation import condense_labels
 # import_data()
 #process and filter the data
 
-run_preprocessing()
+# run_preprocessing()
 #RUN METADATA AND LABELING
-condense_labels()
+# condense_labels()
 
 # RUN UMAP AND CLUSTER ANALISYS
-# run_label_cluster_exploration(0)
-# run_label_cluster_exploration(10)
+run_label_cluster_exploration(0)
+run_label_cluster_exploration(10)
 run_label_cluster_exploration(15)
 
 # RUN DIFF EXP and ENRICHMENT ANALISYS

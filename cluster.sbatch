@@ -20,5 +20,5 @@
 
 module use /opt/insy/modulefiles
 module load miniconda/3.9
-conda activate data_fusion
+conda activate dataset_fusion_micro
 python3 main.py

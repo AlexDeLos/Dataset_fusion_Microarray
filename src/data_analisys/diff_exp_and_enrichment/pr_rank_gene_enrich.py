@@ -162,7 +162,7 @@ def perform_gsea_enrichment(
         gene_sets=go_gene_sets_named,
         # min_size=,              # Min size of a gene set to be considered
         max_size=len(rnk),        # Max size of a gene set to be considered
-        permutation_num=2000,     # Number of permutations for p-value calculation
+        permutation_num=100000,#2000,     # Number of permutations for p-value calculation
         outdir=f'{out_path}{stress}_gsea_prerank_results', # Directory to save plots and results
         ascending=False,
         verbose=True,

@@ -6,7 +6,7 @@ module_dir = './'
 sys.path.append(module_dir)
 from src.constants import *
 from src.data_analisys.diff_exp_and_enrichment.pr_rank_gene_enrich import get_go_data,perform_gsea_enrichment
-from src.data_analisys.diff_exp_and_enrichment.plot_enrichment import plot_enrichment_scatter_interactive_2
+from src.data_analisys.diff_exp_and_enrichment.plot_enrichment import plot_enrichment_scatter_interactive
 from src.data_analisys.diff_exp_and_enrichment.diff_expr import diff_exp_combine_tissues
 
 
@@ -88,7 +88,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                     print(f"\nLoading pre existing results from: {f'{out_path}{stress}_gsea_go_enrichment_results.csv'}")
                                     gsea_results_df = pd.read_csv(f'{out_path}{stress}_gsea_go_enrichment_results.csv')
                                 
-                                plot_enrichment_scatter_interactive_2(gsea_results_df,save_path=f'{FIGURES_DIR}plots_enrichment_old/{exp_name.split('_')[0]}/{'full' if Full else 'sanity'}/{tissue if tissue is not None else 'All-Tissues'}/{data_type}/{fil}/{'pure' if pure else 'mixed'}/{stress}.html',
+                                plot_enrichment_scatter_interactive(gsea_results_df,save_path=f'{FIGURES_DIR}plots_enrichment_old/{exp_name.split('_')[0]}/{'full' if Full else 'sanity'}/{tissue if tissue is not None else 'All-Tissues'}/{data_type}/{fil}/{'pure' if pure else 'mixed'}/{stress}.html',
                                                                     title=f'GSEA for {stress} on {tissue if tissue is not None else 'All-Tissues'} on {'full' if Full else 'sanity'} with {'pure' if pure else 'mixed'} treatments with a filter of >{fil}',treatments = treatments, normalizations=data_types)
 
 
@@ -99,4 +99,4 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
 
 
 if __name__ == "__main__":
-    run_diff_exp_and_enrichment()
+    run_diff_exp_and_enrichment(just_plot=True)
