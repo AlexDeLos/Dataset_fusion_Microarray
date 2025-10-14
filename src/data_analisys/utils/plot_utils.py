@@ -504,56 +504,56 @@ def evaluate_cluters(clusters,out_path):
     plt.savefig(f'{out_path}/test.svg')
     return
 
-def plot_summary_scores(scores_dict: dict, title: str, file_name: str, output_dir: str):
-    """
-    Generates and saves an improved bar plot for clustering scores.
+# def plot_summary_scores(scores_dict: dict, title: str, file_name: str, output_dir: str):
+#     """
+#     Generates and saves an improved bar plot for clustering scores.
 
-    Args:
-        scores_dict (dict): Dictionary with labels as keys and scores as values.
-        title (str): The title for the plot.
-        file_name (str): The name of the output file (e.g., 'bar_rand_ind.svg').
-        output_dir (str): The directory to save the plot in.
-    """
-    if not scores_dict:
-        print(f"Skipping plot '{title}' because the score dictionary is empty.")
-        return
+#     Args:
+#         scores_dict (dict): Dictionary with labels as keys and scores as values.
+#         title (str): The title for the plot.
+#         file_name (str): The name of the output file (e.g., 'bar_rand_ind.svg').
+#         output_dir (str): The directory to save the plot in.
+#     """
+#     if not scores_dict:
+#         print(f"Skipping plot '{title}' because the score dictionary is empty.")
+#         return
 
-    labels = list(scores_dict.keys())
-    values = list(scores_dict.values())
+#     labels = list(scores_dict.keys())
+#     values = list(scores_dict.values())
 
-    # Define a color map for different label types (TREATMENT, TISSUE, etc.)
-    color_map = {
-        'TREATMENT': '#1f77b4',  # Muted blue
-        'TISSUE': '#2ca02c',     # Green
-        'STUDY': '#d62728',      # Red
-    }
-    # Assign a color to each bar based on the last word in its label
-    bar_colors = [color_map.get(label.split()[-1], '#7f7f7f') for label in labels] # Default to gray
+#     # Define a color map for different label types (TREATMENT, TISSUE, etc.)
+#     color_map = {
+#         'TREATMENT': '#1f77b4',  # Muted blue
+#         'TISSUE': '#2ca02c',     # Green
+#         'STUDY': '#d62728',      # Red
+#     }
+#     # Assign a color to each bar based on the last word in its label
+#     bar_colors = [color_map.get(label.split()[-1], '#7f7f7f') for label in labels] # Default to gray
 
-    # --- Create the plot ---
-    plt.figure(figsize=(14, 8))  # Increased figure size for better readability
-    plt.bar(range(len(values)), values, align='center', color=bar_colors)
+#     # --- Create the plot ---
+#     plt.figure(figsize=(14, 8))  # Increased figure size for better readability
+#     plt.bar(range(len(values)), values, align='center', color=bar_colors)
 
-    # --- Add dotted vertical lines between data processing types ---
-    if len(labels) > 1:
-        # Get the first word (e.g., 'robust', 'standardized') from each label
-        processing_types = [label.split()[0] for label in labels]
-        for i in range(1, len(processing_types)):
-            # If the processing type changes from the previous one, draw a line
-            if processing_types[i] != processing_types[i-1]:
-                plt.axvline(x=i - 0.5, color='gray', linestyle='--', linewidth=1.5)
+#     # --- Add dotted vertical lines between data processing types ---
+#     if len(labels) > 1:
+#         # Get the first word (e.g., 'robust', 'standardized') from each label
+#         processing_types = [label.split()[0] for label in labels]
+#         for i in range(1, len(processing_types)):
+#             # If the processing type changes from the previous one, draw a line
+#             if processing_types[i] != processing_types[i-1]:
+#                 plt.axvline(x=i - 0.5, color='gray', linestyle='--', linewidth=1.5)
 
-    # --- Final plot adjustments ---
-    plt.xticks(range(len(labels)), labels, rotation=90, fontsize=10)
-    plt.ylabel('Score')
-    plt.title(title, fontsize=16)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.tight_layout()
+#     # --- Final plot adjustments ---
+#     plt.xticks(range(len(labels)), labels, rotation=90, fontsize=10)
+#     plt.ylabel('Score')
+#     plt.title(title, fontsize=16)
+#     plt.grid(axis='y', linestyle='--', alpha=0.7)
+#     plt.tight_layout()
 
-    # Ensure the output directory exists and save the figure
-    os.makedirs(output_dir, exist_ok=True)
-    plt.savefig(os.path.join(output_dir, file_name))
-    plt.close()
+#     # Ensure the output directory exists and save the figure
+#     os.makedirs(output_dir, exist_ok=True)
+#     plt.savefig(os.path.join(output_dir, file_name))
+#     plt.close()
 def plot_summary_scores(scores_dict: dict, title: str, file_name: str, output_dir: str):
     """
     Generates an improved bar plot with grouped section labels for clustering scores.
@@ -626,7 +626,7 @@ def plot_summary_scores(scores_dict: dict, title: str, file_name: str, output_di
     os.makedirs(output_dir, exist_ok=True)
     plt.savefig(os.path.join(output_dir, file_name))
     plt.close()
-def plot_iteration_scores_old(scores_dict: dict, y_label: str, title: str, file_name: str, output_path: str):
+def plot_iteration_scores(scores_dict: dict, y_label: str, title: str, file_name: str, output_path: str):
     """
     Generates and saves a colored bar plot for scores from a single processing iteration.
 
