@@ -170,7 +170,7 @@ def perform_gsea_enrichment(
     
     print("GSEA complete. Formatting results...")
     results_df = pre_res.res2d
-    results_df['NOM p-val'] = results_df['NOM p-val'].astype(float).replace(0, 1/2000)
+    results_df['NOM p-val'] = results_df['NOM p-val'].astype(float).replace(0, 1/100000)
     # A standard FDR cutoff for GSEA is often more lenient (e.g., < 0.25)
     significant_results:pd.D = results_df #[results_df['FDR q-val'] < 0.05].copy()
 

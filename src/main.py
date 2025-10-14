@@ -9,7 +9,7 @@ from meta_data_processing.label_generation import condense_labels
 
 # run_preprocessing()
 #RUN METADATA AND LABELING
-condense_labels()
+# condense_labels()
 
 # RUN UMAP AND CLUSTER ANALISYS
 run_label_cluster_exploration(0)
