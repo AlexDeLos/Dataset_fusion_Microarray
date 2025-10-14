@@ -1,10 +1,7 @@
 import pandas as pd
 import uuid
-import matplotlib.pyplot as plt
 import numpy as np
 import os
-from adjustText import adjust_text
-from typing import Optional
 import sys
 module_dir = './'
 sys.path.append(module_dir)
@@ -17,7 +14,6 @@ import numpy as np
 import plotly.graph_objects as go
 import os
 import json
-from typing import Optional, Dict, List, Any
 
 def find_pareto_frontier_indices(df: pd.DataFrame, margin: float = 0.0) -> pd.Index:
     """
