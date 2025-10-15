@@ -20,6 +20,6 @@
 
 module use /opt/insy/modulefiles
 module load miniconda/3.9
-conda activate limma_env
+conda activate gseapy_env
 python3 src/main.py
 echo "done with main.py"
