@@ -1,5 +1,4 @@
 import pandas as pd
-
 import numpy as np
 import sys
 module_dir = './'
@@ -11,10 +10,10 @@ from src.data_analisys.diff_exp_and_enrichment.diff_expr import diff_exp_combine
 
 
 def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
-                                data_types = ['2_way_norm','study_corrected','2_way_norm_og','imputed','standardized',  'standardized+', 'robust', 'robust+'],
+                                data_types = ['2_way_norm','study_corrected','imputed','standardized', 'robust'],#'robust+','2_way_norm_og','standardized+',
                                 pures = [True,False],
                                 Fulls = [True,False],
-                                filter_low_combination = [15,10,0],
+                                filter_low_combination = [15,0],
                                 tissues = [None,'leaf'],
                                 just_plot=False):    
     for fil in filter_low_combination:
@@ -33,7 +32,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                             # "Low Light Stress",
                             "High Light Stress",
                             # "Red Light Stress",
-                            # "Other Light Stress"
+                            "Other Light Stress"
                             ]
                         diff_exp_out_dir = f'{FIGURES_DIR}dif_expression_results/{exp_name}/'
                         if not just_plot:
@@ -99,4 +98,4 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
 
 
 if __name__ == "__main__":
-    run_diff_exp_and_enrichment(just_plot=True)
+    run_diff_exp_and_enrichment(just_plot=False)

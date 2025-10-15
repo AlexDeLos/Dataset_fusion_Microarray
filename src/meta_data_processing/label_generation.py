@@ -62,7 +62,7 @@ def condense_labels(Studies=Studies,in_folder=f'{METADATA_OUTPUT_DIR}/study_batc
                 if python_object['treatment'] == []:
                     python_object['treatment'] = ['no treatment/control']
                 x=0
-                if "Silwet treatment" in python_object['treatment']:
+                if   "Light 24h" in python_object['treatment']:
                     print(f'study: {study_id} sample: {sample_id}')
                 if llm_grounding and seen.check_past(python_object):
                     condensed = dict(get_condensed_labels(study_info=study_info['study_metadata'], sample_info=python_object))
@@ -72,7 +72,15 @@ def condense_labels(Studies=Studies,in_folder=f'{METADATA_OUTPUT_DIR}/study_batc
                     condensed = seen.apply_mappings(python_object)
                 if not (study_id in labels):
                     labels[study_id] = {}
-                condensed['treatment'] = list(set(condensed['treatment']))
+                def flatten(lst,ret = []):
+                    for el in lst:
+                        if type(el) == list:
+                            flatten(el,ret)
+                        else:
+                            ret.append(el)
+                    return ret
+
+                condensed['treatment'] = list(set(flatten(condensed['treatment'])))
                 labels[study_id][sample_id] = dict(condensed)
                 seen.save_map()
 

@@ -1,5 +1,5 @@
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import SystemMessage
 from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
 from langchain.chat_models import init_chat_model
 from typing import List, Literal
@@ -19,12 +19,11 @@ class MetaData(BaseModel):
     "Chemical Stress",
     "Nutrient Deficiency",
     "Pathogen Attack",
-    "Insect Herbivory",
-    "Mechanical Stress/Wounding",
     "Low Light Stress",
     "High Light Stress",
     "Red Light Stress",
     "Other Light Stress",
+    "Other stress",
     "No stress"]] = Field(..., description="List of treatments and stresses that was applied to the sample, each unique stress or treatment should have one, and only one, entry in this list")
     
     # Field with description explaining its purpose
