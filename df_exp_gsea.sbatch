@@ -12,7 +12,7 @@
 
 #SBATCH --cpus-per-task=2
 
-#SBATCH --mem=100G
+#SBATCH --mem=200G
 
 #SBATCH --gres=gpu
 
