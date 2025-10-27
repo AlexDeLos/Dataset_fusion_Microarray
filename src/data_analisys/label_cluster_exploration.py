@@ -17,6 +17,7 @@ sys.path.append(module_dir)
 from src.data_analisys.utils.plot_utils import plot_tsne,get_Umap_3,plot_heat_map, plot_dendogram,plot_summary_scores,plot_iteration_scores
 from src.constants import *
 from src.data_analisys.utils.cluster_exploration_utils import *
+from src.data_analisys.utils.correlation import calculate_study_correlations
 
 def apply_mask_to_maps(maps,mask):
     maps_ = maps.copy()
@@ -60,6 +61,7 @@ def plot_var(df,path):
     
 def run_label_cluster_exploration(fil=0):
     labels = load_labels_study(LABELS_PATH)
+    calculate_study_correlations(labels)
     labels = keys_upper(labels)
     # Fuse the labels
 
@@ -80,7 +82,7 @@ def run_label_cluster_exploration(fil=0):
     full_scores = {}
     full_scores_sil = {}
     full_scores_w_study = {}
-    TYPES = ['2_way_norm_og','robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed']#TODO: fix the columns '2_way_norm_og']
+    TYPES = ['robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed']#2_way_norm_og
     # LINK_METHODS = ['single','complete','average','weighted','centroid','median']
 
     LINK_METHODS = ['complete']
@@ -109,7 +111,7 @@ def run_label_cluster_exploration(fil=0):
 
 
             ## ----------------------------------------------------------------
-            ## NEW: Filter out studies with fewer than 5 samples
+            ## Filter out studies with fewer than 5 samples
             ## ----------------------------------------------------------------
             print(f"Processing data type: {type_}")
             print(f"Original shape: {data_df.shape}")

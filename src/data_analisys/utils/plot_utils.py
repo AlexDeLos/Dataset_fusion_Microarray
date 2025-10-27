@@ -611,9 +611,20 @@ def plot_summary_scores(scores_dict: dict, title: str, file_name: str, output_di
         mid_point = start + (end - 1 - start) / 2
         label_text = processing_types[start]
         
+        # mapping to show paper friendly labels
+        name_map ={
+            'robust': 'Robust Normalization',
+            'standardized': 'Standardized',
+            'robust+': 'Study corrected then Robust Normalization',
+            'standardized+': 'Study corrected then Standardized',
+            '2_way_norm': 'Two way normalization',
+            'study_corrected': 'Study corrected',
+            'imputed': 'No correction'
+        }
+        label_text = name_map[label_text]
         # Add the group label text below the x-axis
         ax.text(mid_point, -0.35, label_text, ha='center', va='top', fontsize=14, weight='bold',
-                transform=ax.get_xaxis_transform())
+                transform=ax.get_xaxis_transform(),rotation = 45)
 
     # --- 5. Final Plot Adjustments ---
     ax.set_xticks(range(len(full_labels)))
@@ -626,6 +637,7 @@ def plot_summary_scores(scores_dict: dict, title: str, file_name: str, output_di
     os.makedirs(output_dir, exist_ok=True)
     plt.savefig(os.path.join(output_dir, file_name))
     plt.close()
+
 def plot_iteration_scores(scores_dict: dict, y_label: str, title: str, file_name: str, output_path: str):
     """
     Generates and saves a colored bar plot for scores from a single processing iteration.

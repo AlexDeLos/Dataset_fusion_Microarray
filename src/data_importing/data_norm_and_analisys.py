@@ -13,7 +13,7 @@ from src.data_analisys.utils.cluster_exploration_utils import *
 
 
 def run_preprocessing(
-    plot_nan = False,
+    plot_nan = True,
     plot_boxPlots = False,
     no_change = False):
 
@@ -132,12 +132,43 @@ def run_preprocessing(
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
-        print('Could not read file, running KNN impute')
-        df_impute:pd.DataFrame = apply_KNN_impute(big_df,5)
-        print('KNN impute ran, saving file')
+        #! is this a good imputing?
+        #? it might not work due to the other samples in the study probably also are missing the data we are interested in...
+        # print('Could not read file, running KNN impute')
+        # df_impute:pd.DataFrame = apply_KNN_impute(big_df,5)
+        # print('KNN impute ran, saving file')
+        # df_impute.to_csv(path+'imputed.csv')
+        # print('file saved at: ' + path+'imputed.csv')
+        
+        ### BETTER IMPUTE FUNCTION?
+        # 1. Get a unique list of all study IDs from the column names
+        # We split 'StudyId_SampleId' by '_' and take the first part
+        study_ids = big_df.columns.str.split('_').str[0].unique()
+        
+        print(f"Found {len(study_ids)} studies. Starting study-wise imputation...")
+
+        # 2. Create a list to hold the imputed data for each study
+        imputed_studies_list = []
+
+        # 3. Loop through each study, impute its data, and add it to the list
+        for study_id in study_ids:
+            # Select columns belonging to the current study
+            study_cols = [col for col in big_df.columns if col.startswith(f"{study_id}_")]
+            study_df = big_df[study_cols]
+            
+            # Apply KNN imputation only on this subset of data
+            print(f"  -> Imputing data for study: {study_id} ({len(study_cols)} samples)")
+            imputed_study_df = apply_KNN_impute(study_df, 5)
+            imputed_studies_list.append(imputed_study_df)
+
+        # 4. Concatenate all the imputed dataframes back into a single dataframe
+        # axis=1 combines them column-wise
+        df_impute = pd.concat(imputed_studies_list, axis=1)
+
+        # Optional but recommended: ensure the final column order matches the original
+        df_impute = df_impute[big_df.columns]
         df_impute.to_csv(path+'imputed.csv')
         print('file saved at: ' + path+'imputed.csv')
-        # get the UMAP
 
 
     # NORMALIZE
