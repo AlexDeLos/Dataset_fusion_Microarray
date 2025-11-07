@@ -39,10 +39,7 @@ def parse_gaf(annotation_file: str) -> Dict[str, Set[str]]:
     return geneid2gos
 
 
-# You might need to install gseapy:
-# pip install gseapy
-
-def get_go_data(go_obo_file: str, annotation_file: str,namespaces: Optional[Set[str]] = None):
+def get_go_data_old(go_obo_file: str, annotation_file: str,namespaces: Optional[Set[str]] = None,stress_root_go_ids: Optional[Set[str]] = None):
     """
     Downloads and parses GO and annotation files.
     This helper function separates the data loading from the analysis.
@@ -54,7 +51,6 @@ def get_go_data(go_obo_file: str, annotation_file: str,namespaces: Optional[Set[
 
     print("Parsing GO OBO file...")
     obodag = GODag(go_obo_file)
-
     # Download and parse Arabidopsis annotation file (GAF format)
     if not os.path.exists(annotation_file):
         print(f"Annotation file not found. Downloading to '{annotation_file}'...")
@@ -84,6 +80,98 @@ def get_go_data(go_obo_file: str, annotation_file: str,namespaces: Optional[Set[
         print(f"Filtering complete. {len(filtered_geneid2gos)} genes have annotations in the specified namespaces.")
         return obodag, filtered_geneid2gos
     return obodag, geneid2gos
+def get_go_data(
+    go_obo_file: str, 
+    annotation_file: str,
+    namespaces: Optional[Set[str]] = None,
+    stress_root_go_ids: Optional[Set[str]] = None  # <-- NEW ARGUMENT
+):
+    """
+    Downloads and parses GO and annotation files.
+    This helper function separates the data loading from the analysis.
+    
+    Can optionally filter by namespace AND/OR a set of "root" stress GO IDs
+    (which will be expanded to include all their descendants).
+    """
+    # Download GO OBO file if it doesn't exist
+    if not os.path.exists(go_obo_file):
+        print(f"GO OBO file not found. Downloading to '{go_obo_file}'...")
+        download_go_basic_obo(go_obo_file)
+
+    print("Parsing GO OBO file...")
+    obodag = GODag(go_obo_file)
+
+    # --- NEW: Calculate the complete set of stress-related GO IDs ---
+    all_stress_go_ids = set()
+    if stress_root_go_ids:
+        print(f"Finding all descendant GO terms for {len(stress_root_go_ids)} root stress terms...")
+        for go_id in stress_root_go_ids:
+            if go_id in obodag:
+                all_stress_go_ids.add(go_id) # Add the root term itself
+                all_stress_go_ids.update(obodag[go_id].children)
+            else:
+                print(f"Warning: Root stress GO ID '{go_id}' not found in OBO DAG.")
+        print(f"Total stress-related GO terms (including descendants): {len(all_stress_go_ids)}")
+    # --- END NEW BLOCK ---
+
+    # Download and parse Arabidopsis annotation file (GAF format)
+    if not os.path.exists(annotation_file):
+        print(f"Annotation file not found. Downloading to '{annotation_file}'...")
+        import requests
+        url = "http://current.geneontology.org/annotations/tair.gaf.gz"
+        r = requests.get(url)
+        with open(annotation_file, 'wb') as f:
+            f.write(r.content)
+
+    print("Parsing Arabidopsis annotation file...")
+    # This returns a dictionary mapping gene ID -> set of GO IDs
+    geneid2gos = parse_gaf(annotation_file)
+    
+    # Check if *any* filtering is needed
+    if namespaces or all_stress_go_ids:
+        if namespaces:
+            print(f"Filtering annotations for namespaces: {namespaces}")
+        if all_stress_go_ids:
+             print(f"Filtering annotations for {len(all_stress_go_ids)} stress-related GO terms.")
+
+        filtered_geneid2gos = {}
+        for gene_id, go_ids in geneid2gos.items():
+            
+            filtered_set = set()
+            for go_id in go_ids:
+                # Basic check: must be in the DAG
+                if go_id not in obodag:
+                    continue
+                    
+                # Condition 1: Namespace filter
+                # If namespaces are given, the GO term must be in them.
+                passes_namespace = (
+                    not namespaces or 
+                    obodag[go_id].namespace in namespaces
+                )
+                
+                # Condition 2: Stress filter
+                # If stress_go_ids are given (i.e., all_stress_go_ids is not empty), 
+                # the GO term must be in that set.
+                passes_stress = (
+                    not all_stress_go_ids or 
+                    go_id in all_stress_go_ids
+                )
+                
+                # Only keep the GO ID if it passes *both* filters
+                if passes_namespace and passes_stress:
+                    filtered_set.add(go_id)
+            
+            # If the gene still has annotations after filtering, add it to the results
+            if filtered_set:
+                filtered_geneid2gos[gene_id] = filtered_set
+        
+        print(f"Filtering complete. {len(filtered_geneid2gos)} genes have annotations matching all criteria.")
+        return obodag, filtered_geneid2gos
+        
+    # If no filters were provided, return the full, unfiltered data
+    print("No filters applied. Returning all parsed annotations.")
+    return obodag, geneid2gos
 
 def perform_gsea_enrichment(
     ranked_gene_df: pd.DataFrame,
@@ -93,7 +181,8 @@ def perform_gsea_enrichment(
     geneid2gos: Dict[str, Set[str]],
     keys: Optional[list],
     stress:str,
-    out_path: str
+    out_path: str,
+    permutations: int
 ) -> pd.DataFrame:
     """
     Performs Gene Set Enrichment Analysis (GSEA) for a ranked list of Arabidopsis genes.
@@ -157,12 +246,13 @@ def perform_gsea_enrichment(
             if dic_el not in keys:
                 del go_gene_sets_named[el]
     print("\nRunning GSEA Prerank analysis...")
+    permutation_num = permutations
     pre_res = gseapy.prerank(
         rnk=rnk,
         gene_sets=go_gene_sets_named,
         # min_size=,              # Min size of a gene set to be considered
-        max_size=len(rnk),        # Max size of a gene set to be considered
-        permutation_num=100000,#2000,     # Number of permutations for p-value calculation
+        # max_size=len(rnk),        # Max size of a gene set to be considered
+        permutation_num=permutation_num,# 00,#2000,     # Number of permutations for p-value calculation
         outdir=f'{out_path}{stress}_gsea_prerank_results', # Directory to save plots and results
         ascending=False,
         verbose=True,
@@ -170,7 +260,9 @@ def perform_gsea_enrichment(
     
     print("GSEA complete. Formatting results...")
     results_df = pre_res.res2d
-    results_df['NOM p-val'] = results_df['NOM p-val'].astype(float).replace(0, 1/100000)
+    results_df['NOM p-val'] = results_df['NOM p-val'].astype(float).replace(0, 1/permutation_num)
+    results_df['FDR q-val'] = results_df['FDR q-val'].astype(float).replace(0, 1/permutation_num)
+    results_df['FWER p-val'] = results_df['FWER p-val'].astype(float).replace(0, 1/permutation_num)
     # A standard FDR cutoff for GSEA is often more lenient (e.g., < 0.25)
     significant_results:pd.D = results_df #[results_df['FDR q-val'] < 0.05].copy()
 

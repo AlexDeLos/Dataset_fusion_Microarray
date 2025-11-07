@@ -87,7 +87,7 @@ FWER p-val: {row['FWER p-val']:.3g}
         hovertext=df['hover_text'], name='Gene Sets',
         marker=dict(
             color=df['-log10_FWER_p-val'], colorscale='Viridis', showscale=True,
-            colorbar=dict(title="-log10(FDR)"), size=8, symbol='circle'
+            colorbar=dict(title="-log10(FWER p-val)"), size=8, symbol='circle'
         )
     ))
 
@@ -109,7 +109,7 @@ FWER p-val: {row['FWER p-val']:.3g}
     fig.update_layout(
         title=dict(text=f'<b>{title}</b>', x=0.5),
         xaxis_title="Normalized Enrichment Score (NES)",
-        yaxis_title="-log10(Nominal P-value)",
+        yaxis_title="-log10(FDR q-value)",
         template='plotly_white', height=700, hovermode='closest',
         updatemenus=[
             dict(

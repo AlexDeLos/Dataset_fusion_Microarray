@@ -67,12 +67,24 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
 
             print(f"Found and aligned {len(design_filtered)} samples for '{treatment}' vs. 'No stress'.")
             
-            # 4. Create the final metadata DataFrame for the model
+# 4. Create the final metadata DataFrame for the model
             metadata = design_filtered[['sample_id', 'TREATMENT', 'TISSUE']].copy()
-            metadata.rename(columns={'TREATMENT': 'Target', 'TISSUE': 'Tissue'}, inplace=True)
+            metadata.rename(columns={'TISSUE': 'Tissue'}, inplace=True) # Rename TISSUE
             
-            # Clean up the 'Target' column to be a valid R variable name
-            metadata['Target'] = metadata['Target'].str.replace(f" {treatment}", "", regex=False).str.replace(" ", "_")
+            # Explicitly create 'Control' and 'Treatment' labels.
+            # This ensures 'Control' will be the first level alphabetically.
+            
+            # Find the rows that are 'No stress'
+            is_control_mask = metadata['TREATMENT'].str.contains("No stress", na=False)
+            
+            # Default everything to 'Treatment'
+            metadata['Target'] = 'Treatment'
+            # Then, use the mask to label the 'Control' rows
+            metadata.loc[is_control_mask, 'Target'] = 'Control'
+            
+            # Now we can drop the original TREATMENT column if we want
+            del metadata['TREATMENT']
+            
             single_tissue = False
             if len(set(metadata['Tissue'])) == 1:
                 single_tissue = True
@@ -86,8 +98,12 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
             # 5. Import R libraries
             base = importr('base')
             stats = importr('stats')
-            limma = importr('limma')#, lib_loc='/home/alex/R/x86_64-pc-linux-gnu-library/4.5/')
-            writexl = importr('writexl')#, lib_loc='/home/alex/R/x86_64-pc-linux-gnu-library/4.5/')
+            if CLUSTER_RUN:
+                limma = importr('limma')#, lib_loc='/home/alex/R/x86_64-pc-linux-gnu-library/4.5/')
+                writexl = importr('writexl')#, lib_loc='/home/alex/R/x86_64-pc-linux-gnu-library/4.5/')
+            else:
+                limma = importr('limma', lib_loc='/home/alex/R/x86_64-pc-linux-gnu-library/4.5/')
+                writexl = importr('writexl', lib_loc='/home/alex/R/x86_64-pc-linux-gnu-library/4.5/')
 
             # 6. Convert pandas DataFrames to R objects
             with localconverter(ro.default_converter + pandas2ri.converter):
@@ -143,7 +159,7 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
             # genes_to_save = significant_genes[significant_genes['adj.P.Val']<0.05][['ID','t','logFC','adj.P.Val']]
             genes_to_save = significant_genes[['ID','t','logFC','adj.P.Val']]
             genes_to_save.to_csv(f"{output_dir}{output_filename}_genes.csv", index=False)
-            print(f"✅ Successfully completed analysis for '{treatment}'. Results saved.")
+            print(f"Successfully completed analysis for '{treatment}'. Results saved.")
 
         except Exception as e:
-            print(f"❌ ERROR processing '{treatment}': {e}")
+            print(f"ERROR processing '{treatment}': {e}")

@@ -1,19 +1,21 @@
 import os
 #NEED TO CHANGE
 GLOBAL_DIR_PATH = F'{os.getcwd()}/'
-
-EXPERIMENT_NAME = '2.1_cluster'
+CLUSTER_RUN = False
+EXPERIMENT_NAME = '2.2'
 
 
 DATA_IMPORT_DIR = './data/downloads/'
 GEO_DOWNLOAD_DIR = f'{DATA_IMPORT_DIR}geo_downloads/'
 METADATA_OUTPUT_DIR = f'{DATA_IMPORT_DIR}metadata/'
-# PROCESSED_DATA_FOLDER = f'{DATA_IMPORT_DIR}processed_data/'
-PROCESSED_DATA_FOLDER = '/tudelft.net/staff-umbrella/AT GE Datasets/process_data_final/processed_data'
-COMBINED_DATA_OUTPUT_FILE = f'{PROCESSED_DATA_FOLDER}combined_expression_data.csv'
+PROCESSED_DATA_FOLDER = f'{DATA_IMPORT_DIR}processed_data/'
+if CLUSTER_RUN:
+    PROCESSED_DATA_FOLDER = '/tudelft.net/staff-umbrella/AT GE Datasets/process_data_final/processed_data'
+else:
+    COMBINED_DATA_OUTPUT_FILE = f'{PROCESSED_DATA_FOLDER}combined_expression_data.csv'
 CORE_DATA_DIR = './data/core_data/'
 SOFT_PATH = f'{CORE_DATA_DIR}old_geo_downloads/'
-FIGURES_DIR = './outputs_full_test/'
+FIGURES_DIR = './outputs/'
 FILTERING_FIGURES = f'{FIGURES_DIR}filter_figures/{EXPERIMENT_NAME}/'
 CLUSTER_EXPLORATION_FIGURES_DIR=f'{FIGURES_DIR}exploration_figures/{EXPERIMENT_NAME}/'
 MODEL = 'extractors_and_gemini'

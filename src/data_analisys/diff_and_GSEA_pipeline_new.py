@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import sys
+import os # <-- Added this import
 module_dir = './'
 sys.path.append(module_dir)
 from src.constants import *
@@ -30,31 +31,94 @@ STRESS_GO_ROOTS = {
     "GO:0009411", # response to UV
     "GO:0009636", # response to toxic substance
 }
-def get_spider_plots(path,results_path):
-    os.makedirs(path)
-    # make the dataframes
-    STRESS_GO_ROOTS_small = {
-    "GO:0009414", # response to drought
-    "GO:0009651", # response to salt stress
-    "GO:0009408", # response to heat
-    "GO:0009409", # response to cold
-    "GO:0009644", # response to high light intensity
-    }
+def get_spider_plots(path, results_path, data_types, pures, Fulls, filter_low_combination, tissues, treatments):
+    """
+    Generates spider plots comparing a single GO term across all experiment combinations.
+    """
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print(f"Created directory: {path}")
 
-    for term in STRESS_GO_ROOTS_small:
-        #TODO: do the following
-        # get dataframes for data_types
-        #select only the term we are now dealing with
-        # change "Name" value of the row based the datatype + pures + Fulls + tissue combinations the row belongs to
-        # make sure all the data is in the df varaible
-        df =None
-        create_gsea_spider_plot(df,save_path=path,term=term)
+    # The set of GO terms we want to create comparison plots for
+    STRESS_GO_ROOTS_small = {
+        "GO:0009414": "Drought Stress", # response to drought
+        "GO:0009651":"Salinity Stress", # response to salt stress
+        "GO:0009408": "Heat Stress", # response to heat
+        "GO:0009409": "Cold Stress", # response to cold
+        "GO:0009644": "High Light Stress", # response to high light intensity
+    }
+    print("\n--- Generating Spider Plots ---")
+    for term in STRESS_GO_ROOTS_small.keys():
+        print(f"Gathering data for GO term: {term}")
+        all_term_rows = [] # List to store rows for the current term from all experiments
+
+        # Iterate through all experiment combinations to find the GSEA results
+        # for fil in filter_low_combination:
+        for data_type in data_types:
+                # for pure in pures:
+            for Full in Fulls:
+                for tissue in tissues:
+                    # if (not Full) and (tissue is None):
+                    #     break
+                    # Reconstruct the experiment name and path from the main loop
+                    exp_name = f'{EXPERIMENT_NAME}_{data_type}_{tissue if tissue else 'All_tissues'}_{'full' if Full else 'sanity'}_pure_min_group_15'
+                    out_path = f'{results_path}GSEA_enrichment_{data_type}_{exp_name}/'
+
+                    stress = STRESS_GO_ROOTS_small[term]
+                    csv_file = f'{out_path}{stress}_gsea_go_enrichment_results.csv'
+                    
+                    if os.path.isfile(csv_file):
+                        try:
+                            gsea_results_df = pd.read_csv(csv_file)
+                            # Find the row for the specific GO term we're plotting
+                            term_row = gsea_results_df[gsea_results_df['go_id'] == term].copy()
+                            
+                            if not term_row.empty:
+                                # This is the key step: create a unique, descriptive name 
+                                # for this specific experiment to use in the plot legend.
+                                legend_name = f'{data_type} {'Single Tissue' if tissue else "Combined Tissues"} {"Combined Studies" if Full else "Single study"}'
+                                
+                                # Set the 'Name' column, which create_gsea_spider_plot uses for labels
+                                term_row.loc[:, 'Name'] = legend_name
+                                all_term_rows.append(term_row)
+                        except Exception as e:
+                            print(f"Error reading or processing file {csv_file}: {e}")
+                    else:
+                        # This is normal if a combination was skipped or failed
+                        pass 
+
+        if not all_term_rows:
+            print(f"No data found for GO term {term}. Skipping plot.")
+            continue # Move to the next GO term
+
+        # Combine all the found rows (one per experiment) into a single DataFrame
+        df = pd.concat(all_term_rows, ignore_index=True)
+        
+        if df.empty:
+            print(f"DataFrame is empty for term {term} after concatenation.")
+            continue
+        
+        print(f"Generating spider plot for {term} with {len(df)} entries.")
+        
+        # Create the plot. We assume create_gsea_spider_plot saves the plot
+        # as an HTML file (like plot_enrichment_scatter_interactive).
+        try:
+            # Use term in the filename, replacing ':' to make it valid
+            plot_filename = f"{path}{STRESS_GO_ROOTS_small[term].replace(':', '_')}_spider_plot.svg"
+            create_gsea_spider_plot(df, save_path=plot_filename, term=STRESS_GO_ROOTS_small[term])
+            print(f"Saved plot to {plot_filename}")
+        except Exception as e:
+            print(f"Error generating spider plot for {term}: {e}")
+            print("DataFrame columns:", df.columns)
+            print("DataFrame head:")
+            print(df.head())
+
 
 def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
-                                data_types = ['study_corrected','imputed'],#'2_way_norm','standardized', 'robust'],#'robust+','2_way_norm_og','standardized+',
-                                pures = [True,False],
+                                data_types = ['study_corrected','imputed','2_way_norm','standardized+'],#,'standardized','standardized', 'robust'],#'robust+','2_way_norm_og',,
+                                pures = [True],#,False],
                                 Fulls = [True,False],
-                                filter_low_combination = [15,0],
+                                filter_low_combination = [0,15],
                                 tissues = [None,'leaf'],
                                 just_plot=False):    
     for fil in filter_low_combination:
@@ -120,7 +184,8 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                         geneid2gos = geneid2gos,
                                         keys = ids,
                                         stress = stress,
-                                        out_path = out_path
+                                        out_path = out_path,
+                                        permutations = 1000
                                     )
                                     gsea_results_df.sort_values(by=['FDR q-val'])
                                     print("\n--- GSEA Enrichment Results ---")
@@ -138,7 +203,18 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
 
                             except Exception as e:
                                 print(f"An error occurred during the analysis: {e}")
-    get_spider_plots(f'{FIGURES_DIR}GSEA_radar_comparison/{EXPERIMENT_NAME}/',f'{FIGURES_DIR}GSEA_enrichment_results/')
+    
+    # Updated call to get_spider_plots, passing all the loop parameters
+    get_spider_plots(
+        path=f'{FIGURES_DIR}GSEA_radar_comparison/{EXPERIMENT_NAME}/',
+        results_path=f'{FIGURES_DIR}GSEA_enrichment_results/',
+        data_types=data_types,
+        pures=pures,
+        Fulls=Fulls,
+        filter_low_combination=filter_low_combination,
+        tissues=tissues,
+        treatments=treatments
+    )
 
     print("DONE with enrichment pipeline")
 

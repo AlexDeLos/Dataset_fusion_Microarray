@@ -14,7 +14,7 @@ import gc # Import the garbage collection module
 
 module_dir = './'
 sys.path.append(module_dir)
-from src.data_analisys.utils.plot_utils import plot_tsne,get_Umap_3,plot_heat_map, plot_dendogram,plot_summary_scores,plot_iteration_scores
+from src.data_analisys.utils.plot_utils import plot_tsne,get_Umap_3, plot_dendogram,plot_summary_scores_relative,plot_iteration_scores,plot_summary_scores_modified
 from src.constants import *
 from src.data_analisys.utils.cluster_exploration_utils import *
 from src.data_analisys.utils.correlation import calculate_study_correlations
@@ -82,7 +82,7 @@ def run_label_cluster_exploration(fil=0):
     full_scores = {}
     full_scores_sil = {}
     full_scores_w_study = {}
-    TYPES = ['robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed']#2_way_norm_og
+    TYPES = ['robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed','2_way_norm_og']#2_way_norm_og ['2_way_norm','study_corrected','imputed']#
     # LINK_METHODS = ['single','complete','average','weighted','centroid','median']
 
     LINK_METHODS = ['complete']
@@ -296,6 +296,13 @@ def run_label_cluster_exploration(fil=0):
                 file_name='silhouette_scores.svg',
                 output_path=figure_out_path
             )
+            # plot_iteration_scores_modified(
+            #     scores_dict=current_sil_scores,
+            #     y_label='Silhouette Score Comparison',
+            #     title=f'Silhouette Scores for {type_} ({method} linkage)',
+            #     file_name='silhouette_scores_compare.svg',
+            #     output_path=figure_out_path
+            # )
 
             # Call the new plotting function for Rand Index scores
             plot_iteration_scores(
@@ -305,6 +312,13 @@ def run_label_cluster_exploration(fil=0):
                 file_name='rand_index_scores.svg',
                 output_path=figure_out_path
             )
+            # plot_iteration_scores_modified(
+            #     scores_dict=current_rand_scores,
+            #     y_label='Rand Index Score Comparison',
+            #     title=f'Rand Index Scores for {type_} ({method} linkage)',
+            #     file_name='rand_index_scores_compare.svg',
+            #     output_path=figure_out_path
+            # )
             ## ----------------------------------------------------------------
             ## END: REFACTORED PLOTTING LOGIC
             ## ----------------------------------------------------------------
@@ -317,24 +331,29 @@ def run_label_cluster_exploration(fil=0):
     output_dir = f'{CLUSTER_EXPLORATION_FIGURES_DIR}{EXPERIMENT_NAME}/{fil}/'
 
     # Call the summary plotting function for each score type
-    plot_summary_scores(
+    plot_summary_scores_modified(
         scores_dict=full_scores,
         title='Rand Index Score',
         file_name='bar_rand_ind.svg',
         output_dir=output_dir
     )
+    plot_summary_scores_relative(
+        scores_dict=full_scores,
+        title='Rand Index Score Comparison',
+        file_name='comp_bar_rand_ind.svg',
+        output_dir=output_dir
+    )
 
-    plot_summary_scores(
+    plot_summary_scores_modified(
         scores_dict=full_scores_sil,
         title='Silhouette Score',
         file_name='bar_silhouette.svg',
         output_dir=output_dir
     )
-
-    plot_summary_scores(
-        scores_dict=full_scores_w_study,
-        title='Rand Index Score vs Study',
-        file_name='bar_rand_ind_study.svg',
+    plot_summary_scores_relative(
+        scores_dict=full_scores_sil,
+        title='Silhouette Score Comparison',
+        file_name='comp_bar_silhouette.svg',
         output_dir=output_dir
     )
 
