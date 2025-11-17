@@ -14,7 +14,7 @@ import gc # Import the garbage collection module
 
 module_dir = './'
 sys.path.append(module_dir)
-from src.data_analisys.utils.plot_utils import plot_tsne,get_Umap_3, plot_dendogram,plot_summary_scores_relative,plot_iteration_scores,plot_summary_scores_modified
+from src.data_analisys.utils.plot_utils import plot_tsne,plot_projection, plot_dendogram,plot_summary_scores_relative,plot_iteration_scores,plot_summary_scores_modified
 from src.constants import *
 from src.data_analisys.utils.cluster_exploration_utils import *
 from src.data_analisys.utils.correlation import calculate_study_correlations
@@ -82,7 +82,7 @@ def run_label_cluster_exploration(fil=0):
     full_scores = {}
     full_scores_sil = {}
     full_scores_w_study = {}
-    TYPES = ['robust', 'standardized', 'robust+', 'standardized+','2_way_norm','study_corrected','imputed','2_way_norm_og']#2_way_norm_og ['2_way_norm','study_corrected','imputed']#
+    TYPES = ['robust', 'standardized', '2_way_norm','study_corrected','imputed']#2_way_norm_og 'standardized+','2_way_norm_og',['2_way_norm','study_corrected','imputed']#
     # LINK_METHODS = ['single','complete','average','weighted','centroid','median']
 
     LINK_METHODS = ['complete']
@@ -224,15 +224,14 @@ def run_label_cluster_exploration(fil=0):
             sil_scores = list(map(lambda x: {x:silhouette_score(data_df.T.to_numpy(),labels=get_map(maps,x))}, maps[exmaple_sample]))
 
             #TODO: re-add this
+            tissue_scores = []
             # for tissue in ['leaf']:
             #     mask_tissue = np.array([x ==tissue for x in get_map(maps,'TISSUE')])
             #     tiss_df = data_df.loc[:, mask_tissue]
             #     temp_treatment = hierarchy.linkage(tiss_df.T.to_numpy(), method=linkage_method)
             #     maps_tissue = apply_mask_to_maps(maps,mask_tissue)#TODO: this needs to be fixed to the new maps object
 
-            #     scores.append({f'treatment_{tissue}': adjusted_rand_score(hierarchy.fcluster(temp_treatment,t=len(np.unique(maps_tissue['TREATMENT'])),criterion='maxclust'),maps_tissue['TREATMENT'])})
-
-            #     sil_scores.append({f'treatment_{tissue}':silhouette_score(tiss_df.T.to_numpy(),labels=maps_tissue['TREATMENT'])})
+            #     tissue_scores.append(adjusted_rand_score(hierarchy.fcluster(temp_treatment,t=len(np.unique(maps_tissue['TREATMENT'])),criterion='maxclust'),maps_tissue['TREATMENT']))
 
             for i,key in enumerate(maps[exmaple_sample]):
                 plot_tsne(
@@ -240,11 +239,16 @@ def run_label_cluster_exploration(fil=0):
                     markers=get_map(maps,key),
                     colors=get_map(maps,key),
                     save_path= f'{figure_out_path}/tsne',
-                    title=f'TSNE of {key} using {method} linkage',
+                    title=None,#f'TSNE projection for {key}',
+                    name=key,
+                    legend=True)
+                plot_projection(embedding,
+                    markers=get_map(maps,key),
+                    colors=get_map(maps,key),
+                    title=None,#f'TSNE projection for {key}',
                     name=key,
                     legend=True,  # Shows legend for color groups
-                )
-                get_Umap_3(embedding,name=key,colour_map=get_map(maps,key),marker_map=None, title =f'Umap of {key} using {method} linkage', save_loc=f'{figure_out_path}/Umaps')
+                    save_path=f'{figure_out_path}/Umaps')
 
             del embedding # Free memory from 2D UMAP embedding
 
@@ -334,29 +338,30 @@ def run_label_cluster_exploration(fil=0):
     plot_summary_scores_modified(
         scores_dict=full_scores,
         title='Rand Index Score',
-        file_name='bar_rand_ind.svg',
+        file_name='barRandInd.svg',
         output_dir=output_dir
     )
     plot_summary_scores_relative(
         scores_dict=full_scores,
-        title='Rand Index Score Comparison',
-        file_name='comp_bar_rand_ind.svg',
+        title='Rand Index Score Ralative to Study Silhouette Rand Index Score',
+        file_name='compBarRandInd.svg',
         output_dir=output_dir
     )
 
     plot_summary_scores_modified(
         scores_dict=full_scores_sil,
         title='Silhouette Score',
-        file_name='bar_silhouette.svg',
+        file_name='barSilhouette.svg',
         output_dir=output_dir
     )
     plot_summary_scores_relative(
         scores_dict=full_scores_sil,
-        title='Silhouette Score Comparison',
-        file_name='comp_bar_silhouette.svg',
+        title='Silhouette Score Ralative to Study Silhouette Score',
+        file_name='compBarSilhouette.svg',
         output_dir=output_dir
     )
 
     print("DONE WITH CLUSTER EXPLORATION")
 if __name__ == '__main__':
-    run_label_cluster_exploration()
+    # run_label_cluster_exploration()
+    run_label_cluster_exploration(15)

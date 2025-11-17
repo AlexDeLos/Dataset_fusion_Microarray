@@ -10,7 +10,10 @@ sys.path.append(module_dir)
 from src.constants import *
 from src.data_importing.helpers import get_first_indexs, apply_KNN_impute,box_plot
 from src.data_analisys.utils.cluster_exploration_utils import *
+from src.data_importing.helpers import find_and_plot_missing_genes
 
+def get_study(sample: str):
+    return sample.split('_')[0]
 
 def run_preprocessing(
     plot_nan = True,
@@ -30,6 +33,7 @@ def run_preprocessing(
         # filtered_df_og = pd.read_csv('./data/downloads/old_plocessed_data/'+'filter.csv', index_col=0)
         # filtered_df_og.columns = list(map(lambda x: x.split('_')[2]+'_'+x.split('_')[0],filtered_df_og.columns))
         print('succesfully loaded data')
+        raise FileNotFoundError
     except FileNotFoundError:
         if no_change:
             raise FileNotFoundError
@@ -58,10 +62,10 @@ def run_preprocessing(
         filtered_df = filtered_df[filtered_columns]
 
         filtered_df.to_csv(path+'filter.csv')
-
+    
     print('data loaded')
     big_df = filtered_df
-
+    find_and_plot_missing_genes(list(big_df.index), out_opath=FIGURES_DIR,chr='2')
     #! Remove columns from the datafram
     #TODO: static
     # big_df.loc[:, ~(big_df > 1000000).any()]
@@ -121,8 +125,7 @@ def run_preprocessing(
             big_df[column] = np.log2(big_df[column]+1)
 
     print('applied log2')
-    def get_study(sample: str):
-        return sample.split('_')[0]
+
     study_map = list(map(get_study,big_df.columns))
 
     # KNN Impute
@@ -243,5 +246,83 @@ def run_preprocessing(
         box_plot(standardized_df_,120,out_path+'/standardized+/')
     print('Done')
 
+def _flatten_covariate(value):
+    """
+    Converts a potential list (or other non-hashable type) 
+    into a single, hashable string.
+    """
+    if isinstance(value, list):
+        return '_'.join(map(str, value))
+    return value
+
+def normalize_by_tissue():
+    labels = load_labels_study(LABELS_PATH)
+    df = pd.read_csv(PROCESSED_DATA_FOLDER+'imputed.csv', index_col=0)
+    study_map = list(map(get_study,df.columns))
+    
+    d = dict([(y,x+1) for x,y in enumerate(sorted(set(study_map)))])
+    batches = []
+    for el in study_map:
+        batches.append(d[el])
+
+    covariate_data = []
+    for sample_col in df.columns:
+        try:
+            study_id, sample_id = sample_col.split('_', 1)
+        except ValueError:
+            covariate_data.append({'tissue': None, 'treatment': None})
+            continue
+
+        try:
+            info = labels[study_id][sample_id]
+            covariate_data.append({
+                'tissue': _flatten_covariate(info['tissue']),
+                'treatment': _flatten_covariate(info['treatment'])
+            })
+        except KeyError:
+            covariate_data.append({'tissue': None, 'treatment': None})
+
+    covar_mod = pd.DataFrame(covariate_data, index=df.columns)
+
+    # --- START: DIAGNOSTIC ---
+    # This will print a table showing the overlap.
+    # Look for any row (like 'whole_plant') that has a count in ONLY ONE
+    # column (batch). This confirms it is confounded.
+    print("--- Checking for Confounding Variables ---")
+    check_df = covar_mod.copy()
+    check_df['batch'] = batches # Add the batch list for comparison
+    
+    print("\n--- Tissue vs. Batch Crosstab ---")
+    print(pd.crosstab(check_df['tissue'], check_df['batch']))
+    
+    print("\n--- Treatment vs. Batch Crosstab ---")
+    print(pd.crosstab(check_df['treatment'], check_df['batch']))
+    print("--------------------------------------------")
+    # --- END: DIAGNOSTIC ---
+
+    
+    # By default, assume we have to drop both.
+    confounded_vars = ['treatment']
+    covar_mod_fixed = covar_mod.drop(columns=confounded_vars, errors='ignore')
+
+    # If dropping those columns results in an empty DataFrame,
+    # we must pass 'None' to pycombat_norm.
+    if covar_mod_fixed.empty:
+        print("All covariates were confounded. Running ComBat without covariates.")
+        covar_mod_fixed = None
+    else:
+        print(f"Removed confounded variables: {confounded_vars}")
+
+    # Pass the fixed covariate model (or None) to the function.
+    df_corrected = pycombat_norm(df, 
+                                 batches, 
+                                 covar_mod=covar_mod_fixed, 
+                                 na_cov_action='fill')
+
+    print("ComBat normalization successful.")
+    print(df_corrected.head())
+    return df_corrected
+
 if __name__ == '__main__':
+    normalize_by_tissue()
     run_preprocessing()

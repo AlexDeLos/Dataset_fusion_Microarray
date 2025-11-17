@@ -637,54 +637,74 @@ def radar_factory(num_vars, frame='circle'):
     register_projection(RadarAxes)
     return theta
 
-# --- End of matplotlib example code ---
 
+import matplotlib.pyplot as plt
+import matplotlib
+import pandas as pd
+import numpy as np
+import os
+# Source - https://stackoverflow.com/a
+# Posted by Herman Schaaf, modified by community. See post 'Timeline' for change history
+# Retrieved 2025-11-17, License - CC BY-SA 4.0
 
-def create_gsea_spider_plot(df, save_path,term):
+font = {'size'   : 14}
+
+matplotlib.rc('font', **font)
+
+# -----------------------------------------------------------------------------
+# 2. Main Plotting Function
+# -----------------------------------------------------------------------------
+
+def create_gsea_spider_plot(df, save_path, term):
     """
-    Generates a spider plot (radar chart) for a set of GSEA results
-    using the custom matplotlib 'radar' projection.
-
-    The function scales all statistical columns to a [0, 1] range to make
-    them comparable on a single plot.
-
-    Args:
-        df (pd.DataFrame): A DataFrame containing the rows to plot.
-                           Must include 'Name' and the stats_cols.
-
-    Returns:
-        tuple: (fig, ax) The matplotlib figure and axes objects.
+    Generates a spider plot with shared scaling for p-values and 
+    individual scaling for ES/NES. Includes a p=0.01 threshold line.
     """
     
-    # 1. Define the columns to plot
-    stats_cols = ['ES', 'NES', 'NOM p-val', 'FDR q-val', 'FWER p-val']#, 'Tag %', 'Gene %']
+    # 1. Define columns and groups
+    p_val_cols = ['NOM p-val', 'FDR q-val', 'FWER p-val']
+    other_cols = ['ES', 'NES']
+    stats_cols = other_cols + p_val_cols
     
-    # Check if all required columns are present
+    # Check columns
     missing_cols = [col for col in stats_cols + ['Name'] if col not in df.columns]
     if missing_cols:
         print(f"Error: DataFrame is missing required columns: {missing_cols}")
         return None, None
 
-
-    # 2. Extract and scale the data
-    # We use MinMaxScaler to put all variables on a 0-1 scale,
-    # which is necessary for a spider plot.
+    # 2. Process Data (Log Transform & Normalization)
     try:
-        scaler = MinMaxScaler()
         plot_data = df[stats_cols].copy()
         
-        # turn the tag % and gene % into floats
-        # plot_data['Tag %'] = list(map(lambda x: float(x.split('/')[0])/float(x.split('/')[1]),plot_data['Tag %']))
-        # plot_data['Gene %'] = list(map(lambda x: float(x.split('%')[0]),plot_data['Gene %']))
-        plot_data['NOM p-val'] = -np.log(plot_data['NOM p-val'])
-        plot_data['FDR q-val'] = -np.log(plot_data['FDR q-val'])
-        plot_data['FWER p-val'] = -np.log(plot_data['FWER p-val'])
-        # Note: scaler.fit_transform(plot_data) will work even if there's only one row
-        plot_data_scaled = scaler.fit_transform(plot_data)
-        
-        # Convert back to DataFrame for easier handling
-        plot_data_scaled = pd.DataFrame(plot_data_scaled, columns=stats_cols, index=df.index)
-        
+        # Log transform p-values
+        for col in p_val_cols:
+            plot_data[col] = -np.log(plot_data[col] + 1e-10)
+
+        # --- Determine Min/Max Ranges ---
+        ranges = {}
+
+        # A. Shared scale for P-values
+        all_p_vals = plot_data[p_val_cols].values.flatten()
+        p_min, p_max = all_p_vals.min(), all_p_vals.max()
+        p_pad = (p_max - p_min) * 0.05
+        p_range = (p_min - p_pad, p_max + p_pad)
+
+        for col in p_val_cols:
+            ranges[col] = p_range
+
+        # B. Individual scales for ES and NES
+        for col in other_cols:
+            val_min, val_max = plot_data[col].min(), plot_data[col].max()
+            pad = (val_max - val_min) * 0.05 if val_max != val_min else 0.1
+            ranges[col] = (val_min - pad, val_max + pad)
+
+        # --- Normalize Data to [0, 1] ---
+        plot_data_scaled = plot_data.copy()
+        for col in stats_cols:
+            min_v, max_v = ranges[col]
+            denom = (max_v - min_v) if (max_v - min_v) != 0 else 1.0
+            plot_data_scaled[col] = (plot_data[col] - min_v) / denom
+
         names = df['Name']
     
     except Exception as e:
@@ -693,39 +713,93 @@ def create_gsea_spider_plot(df, save_path,term):
 
     # 3. Set up the spider plot
     num_vars = len(stats_cols)
-    
-    # NEW: Call radar_factory. This registers the 'radar' projection
-    # and returns the angles (theta) for the axes.
-    # We'll use a polygon frame.
     theta = radar_factory(num_vars, frame='polygon')
 
-    # Initialize the plot using the new 'radar' projection
     fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='radar'))
 
-    # NEW: Set radial axis (y-axis) labels and limits using set_rgrids
-    # This replaces set_yticks and set_yticklabels
-    ax.set_rgrids([0.25, 0.5, 0.75, 1.0], labels=["0.25", "0.50", "0.75", "1.00"], color="grey", size=10)
+    # Update labels
+    labels_display = ['ES', 'NES'] + [f"-log10({c})" for c in p_val_cols]
+    ax.set_varlabels(labels_display)
     
-    # NEW: Set axis labels (the variable names) using the custom set_varlabels
-    # This replaces set_xticks and set_xticklabels
-    ax.set_varlabels(stats_cols)
+    # Push axis labels outward
+    ax.tick_params(pad=35) 
 
-    # 4. Plot each row (each 'Name')
+    # 4. Plot each row
+    colors = plt.cm.tab10.colors 
     for i, row in plot_data_scaled.iterrows():
-        # Get values. NO need to close the loop (e.g., values += values[:1])
-        # The custom RadarAxes 'plot' and 'fill' methods handle this.
         values = row.values.flatten().tolist()
-        
-        # Get the name for the legend
         label = names[i]
+        color = colors[i % len(colors)]
         
-        # Plot the line (using 'theta' instead of 'angles')
-        ax.plot(theta, values, label=label, linewidth=2, linestyle='solid')
-        # Fill the area (using 'theta' instead of 'angles')
-        ax.fill(theta, values, alpha=0.15)
+        ax.plot(theta, values, label=label, linewidth=2, color=color)
+        ax.fill(theta, values, color=color, alpha=0.1)
 
-    # 5. Add legend and title
-    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-    plt.title(f'GSEA Results Spider Plot for {term}', size=20, y=1.1)
-    fig.savefig(f'{save_path}',bbox_inches='tight')
+    # ---------------------------------------------------------
+    # NEW BLOCK: Add p=0.01 Significance Threshold Line
+    # ---------------------------------------------------------
+    # Calculate log-transformed threshold matching the data transform
+    thresh_val = -np.log10(0.01 + 1e-10)
+    
+    # Get the range used for normalization (shared across p-cols)
+    p_min_r, p_max_r = ranges[p_val_cols[0]]
+    
+    # Normalize the threshold to [0, 1]
+    if (p_max_r - p_min_r) != 0:
+        thresh_norm = (thresh_val - p_min_r) / (p_max_r - p_min_r)
+    else:
+        thresh_norm = -1 # Fallback
+        
+    # Only draw if it falls within the visible plot area (or close to it)
+    if 0 <= thresh_norm <= 1.0:
+        # Find the angular indices for the p-value columns
+        p_indices = [i for i, col in enumerate(stats_cols) if col in p_val_cols]
+        p_angles = [theta[i] for i in p_indices]
+        
+        # Create radius data (constant radius for the threshold)
+        p_radii = [thresh_norm] * len(p_indices)
+        
+        # Plot the line
+        # We use ax.lines[-1] to fix the "closed loop" behavior of RadarAxes
+        ax.plot(p_angles, p_radii, color='red', linestyle=':', linewidth=2, label='p=0.01', zorder=10)
+        
+        # FIX: RadarAxes automatically closes the line (connects end to start).
+        # We retrieve the line object and remove the last point to keep it open.
+        line_obj = ax.lines[-1]
+        lx, ly = line_obj.get_data()
+        if len(lx) > len(p_angles):
+            line_obj.set_data(lx[:-1], ly[:-1])
+            
+        # Add a text label for the threshold
+        ax.text(p_angles[-1], thresh_norm, ' p=0.01', 
+                color='red', ha='left', va='center', fontsize=10, fontweight='bold')
+    # ---------------------------------------------------------
+
+    # 5. Custom Grid Labels
+    ax.set_yticklabels([]) 
+    
+    grid_points = [0.0, 0.5, 1.0]
+    ax.set_rgrids(grid_points, labels=[], angle=0, color="grey", alpha=0.3)
+
+    # Annotate the values on the axes
+    for ang, col_name in zip(theta, stats_cols):
+        min_v, max_v = ranges[col_name]
+        
+        for gp in grid_points:
+            real_val = min_v + gp * (max_v - min_v)
+            val_str = f"{real_val:.2f}"
+            
+            label_r = 0.12 if gp == 0.0 else gp
+
+            ax.text(ang, label_r, val_str, 
+                    ha='center', va='center', 
+                    fontsize=11,  
+                    fontweight='normal',
+                    color='black', 
+                    bbox=dict(facecolor='none', edgecolor='none', pad=1))
+
+    # 6. Add legend and title
+    ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=12)
+    plt.title(f'GSEA Results: {term}', size=18, y=1.1)
+    
+    fig.savefig(f'{save_path}', bbox_inches='tight')
     return fig, ax

@@ -101,375 +101,128 @@ def plot_matrix(mat,location,name,x_name='',y_name='',title=''):
     plt.savefig(f'{location}{name}.svg')
     plt.close()
 
+def plot_projection(embedding,
+    colors: list,
+    markers: list,
+    title: Optional[str] = "t-SNE Projection",
+    name: str = '',
+    legend: bool = True,
+    save_path: str = ''):
 
-def get_Umap(matrix: np.array, colour_map: Optional[list] = None, name: str = '',
-             save_loc: str = './outputs/misc', title: str = 'UMAP projection of the dataset', small_dots=False):
-    """
-    Generate and save UMAP projection plot, creating directories if needed.
-    
-    Args:
-        matrix: Input data matrix
-        colour_map: List of labels for coloring points (optional)
-        name: Additional identifier for output filename
-        save_loc: Directory to save the plot
-        title: Plot title
-        small_dots: Boolean flag for small dot size
-    """
-    # Create directory if it doesn't exist
-    os.makedirs(save_loc, exist_ok=True)
-    
-    # Perform UMAP transformation
-    reducer = umap.UMAP(n_neighbors=10)
-    embedding = reducer.fit_transform(matrix)
-    
-    # Create plot
-    plt.figure(figsize=(10, 8))
-    
-    # Define marker and color options
-    markers = ['o', 's', '^', 'D', 'v', 'p', '*', 'X', 'h', '8', 'P', 'd', '>', '<', '1', '2', '3', '4']
-    colors = plt.cm.rainbow(np.linspace(0, 1, len(set(colour_map)) if colour_map is not None else ['b']))
-    
-    if colour_map is None:
-        plt.scatter(
-            embedding[:, 0],
-            embedding[:, 1],
-            s=0.5 if small_dots else 10,
-            c='b',
-            marker='o'
-        )
-    else:
-        unique_groups = sorted(set(colour_map))
-        for group in unique_groups:
-            # Get indices of samples in this group
-            group_indices = [i for i, x in enumerate(colour_map) if x == group]
-            
-            # Assign marker and color
-            marker_idx = group % len(markers)
-            color_idx = group % len(colors)
-            
-            plt.scatter(
-                embedding[group_indices, 0],
-                embedding[group_indices, 1],
-                c=[colors[color_idx]] * len(group_indices),
-                marker=markers[marker_idx],
-                s=0.5 if small_dots else 10,
-                label=f'Group {group}'
-            )
-        
-        # Add legend if there are groups
-        if len(unique_groups) > 1:
-            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    
-    plt.gca().set_aspect('equal', 'datalim')
-    plt.title(title, fontsize=24)
-    
-    # Construct save path and save figure
-    output_path = os.path.join(save_loc, f'umap_{name}.svg')
-    plt.savefig(output_path, format='svg', bbox_inches='tight')
-    plt.close()
+    os.makedirs(save_path, exist_ok=True)
 
-def get_Umap_3(embedding, 
-             colour_map: Optional[list] = None, 
-             marker_map: Optional[list] = None,
-             name: str = '',
-             save_loc: str = './outputs/misc', 
-             title: str = 'UMAP projection of the dataset', 
-             small_dots: bool = False,
-             legend: bool = True):
-    """
-    Generate and save UMAP projection plot with independent color and marker assignments.
-    
-    Args:
-        embedding: Umap embedings
-        colour_map: List of color labels for points
-        marker_map: List of marker labels for points
-        name: Additional identifier for output filename
-        save_loc: Directory to save the plot
-        title: Plot title
-        small_dots: Boolean flag for small dot size
-        legend: Whether to show legend
-    """
-    # Create directory if it doesn't exist
-    os.makedirs(save_loc, exist_ok=True)
-    
-    
-    # Create plot
-    plt.figure(figsize=(10, 8))
-    
+    fig, ax = plt.subplots(figsize=(10, 10))
     # Define marker and color options
     available_markers = ['o', 's', '^', 'D', 'v', 'p', '*', 'X', 'h', '8', 'P', 'd', '>', '<', '1', '2', '3', '4']
-    available_colors = plt.cm.rainbow(np.linspace(0, 1, len(set(colour_map)) if colour_map is not None else ['b']))
     
-    if colour_map is None and marker_map is None:
-        # Simple scatter plot if no mappings provided
-        plt.scatter(
-            embedding[:, 0],
-            embedding[:, 1],
-            s=0.5 if small_dots else 15,
-            c='b',
-            marker='o'
+    # Handle None cases for labels
+    if colors is None:
+        colors = ['default'] * len(tsne_results)
+    if markers is None:
+        markers = ['default'] * len(tsne_results)
+        
+    unique_colors = sorted(set(colors))
+    unique_markers = sorted(set(markers))
+    
+    available_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_colors)))
+
+    # Create mappings for colors and markers
+    color_dict = {color: available_colors[i % len(available_colors)] 
+                  for i, color in enumerate(unique_colors)}
+    marker_dict = {marker: available_markers[i % len(available_markers)] 
+                   for i, marker in enumerate(unique_markers)}
+    
+    # Create combined groups based on unique color-marker pairs
+    unique_combinations = sorted(set(zip(colors, markers)))
+    
+    # Plot each unique combination
+    for color_val, marker_val in unique_combinations:
+        # Handle the default case
+        if color_val == 'default' and marker_val == 'default':
+            mask = np.ones(len(embedding), dtype=bool)
+            plot_color = 'b'
+            plot_marker = 'o'
+            plot_label = None
+        else:
+            mask = (np.array(colors) == color_val) & (np.array(markers) == marker_val)
+            plot_color = color_dict[color_val]
+            plot_marker = marker_dict[marker_val]
+            # Your original code only labels by color, we'll keep that logic
+            plot_label = f'{color_val}' if legend else None
+
+        ax.scatter(
+            embedding[mask, 0],
+            embedding[mask, 1],
+            c=[plot_color] * sum(mask),
+            marker=plot_marker,
+            label=plot_label
         )
-    else:
-        # Create combined groups based on unique color-marker pairs
-        if colour_map is None:
-            colour_map = [0] * len(embedding)
-        if marker_map is None:
-            marker_map = [0] * len(embedding)
-            
-        unique_combinations = sorted(set(zip(colour_map, marker_map)))
-        
-        # Create mappings for colors and markers
-        color_dict = {color: available_colors[i % len(available_colors)] 
-                     for i, color in enumerate(sorted(set(colour_map)))}
-        marker_dict = {marker: available_markers[i % len(available_markers)] 
-                       for i, marker in enumerate(sorted(set(marker_map)))}
-        
-        # Plot each unique combination
-        for color_val, marker_val in unique_combinations:
-            mask = (np.array(colour_map) == color_val) & (np.array(marker_map) == marker_val)
-            plt.scatter(
-                embedding[mask, 0],
-                embedding[mask, 1],
-                c=[color_dict[color_val]] * sum(mask),
-                marker=marker_dict[marker_val],
-                s=0.5 if small_dots else 15,
-                label=f'Color {color_val}, Marker {marker_val}' if legend else None
-            )
-    plt.gca().set_aspect('equal', 'datalim')
-    plt.title(title, fontsize=24)
-    #TODO: plot the colours of the dots to the legend
-    if True and (colour_map is not None or marker_map is not None):
-        # Create custom legend handles with both color and marker information
-        handles = []
-        if colour_map is not None and marker_map is not None:
-            # For both color and marker mappings
-            uni = np.unique(np.array(colour_map),return_counts = True)
-            for color_val, marker_val in unique_combinations:
-                handles.append(plt.Line2D([0], [0], 
-                                        marker=marker_dict[marker_val], 
-                                        color='w',
-                                        markerfacecolor=color_dict[color_val],
-                                        markersize=10,
-                                        label=f'{color_val} ({marker_val}) #{uni[1][list(uni[0]).index(color_val)]}'))
-        elif colour_map is not None:
-            # For color mapping only
-            for color_val in sorted(set(colour_map)):
-                handles.append(plt.Line2D([0], [0], 
-                                        marker='o', 
-                                        color='w',
-                                        markerfacecolor=color_dict[color_val],
-                                        markersize=10,
-                                        label=f'{color_val}'))
-        elif marker_map is not None:
-            # For marker mapping only
-            for marker_val in sorted(set(marker_map)):
-                handles.append(plt.Line2D([0], [0], 
-                                        marker=marker_dict[marker_val], 
-                                        color='w',
-                                        markerfacecolor='gray',
-                                        markersize=10,
-                                        label=f'{marker_val}'))
-        
-        plt.legend(handles=handles, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
     
-    # Construct save path and save figure
-    output_path = os.path.join(save_loc, f'umap_{name}.svg')
-    plt.savefig(output_path, format='svg', bbox_inches='tight')
-    plt.close()
-    return embedding
+    ax.set_aspect('auto', 'datalim','C')
+    if title:
+        ax.set_title(title, fontsize=24)
 
-def get_Umap_2(matrix: np.array, 
-             colour_map: Optional[list] = None, 
-             marker_map: Optional[list] = None,
-             name: str = '',
-             save_loc: str = './outputs/misc', 
-             title: str = 'UMAP projection of the dataset', 
-             small_dots: bool = False,
-             legend: bool = True):
-    """
-    Generate and save UMAP projection plot with independent color and marker assignments.
-    
-    Args:
-        matrix: Input data matrix
-        colour_map: List of color labels for points
-        marker_map: List of marker labels for points
-        name: Additional identifier for output filename
-        save_loc: Directory to save the plot
-        title: Plot title
-        small_dots: Boolean flag for small dot size
-        legend: Whether to show legend
-    """
-    # Create directory if it doesn't exist
-    os.makedirs(save_loc, exist_ok=True)
-    
-    # Perform UMAP transformation
-    reducer = umap.UMAP(n_epochs=200,n_neighbors=500, min_dist= 0.5)
-    embedding = reducer.fit_transform(matrix)
-    
-    # Create plot
-    plt.figure(figsize=(10, 8))
-    
-    # Define marker and color options
-    available_markers = ['o', 's', '^', 'D', 'v', 'p', '*', 'X', 'h', '8', 'P', 'd', '>', '<', '1', '2', '3', '4']
-    available_colors = plt.cm.rainbow(np.linspace(0, 1, len(set(colour_map)) if colour_map is not None else ['b']))
-    
-    if colour_map is None and marker_map is None:
-        # Simple scatter plot if no mappings provided
-        plt.scatter(
-            embedding[:, 0],
-            embedding[:, 1],
-            s=0.5 if small_dots else 15,
-            c='b',
-            marker='o'
+    if legend:
+        # 1. Get unique handles and labels
+        # This de-duplicates the labels (e.g., 'Tissue A' appearing 5 times)
+        handles, labels = ax.get_legend_handles_labels()
+        unique = dict(zip(labels, handles)) # de-duplicate
+        
+        # 2. Automatically determine number of columns
+        # Aim for max 20 rows per column (adjust as needed)
+        num_items = len(unique)
+        max_rows_per_col = 40  
+        num_cols = (num_items + max_rows_per_col - 1) // max_rows_per_col
+        num_cols = max(1, num_cols) # Ensure at least 1 column
+
+        # 3. Place legend outside the plot
+        ax.legend(
+            unique.values(), 
+            unique.keys(),
+            loc='upper left',
+            bbox_to_anchor=(1.02, 1.0), # (102% width, 100% height)
+            borderaxespad=0.0,
+            ncol=num_cols,
+            fontsize='medium' # 'small' or 'medium' is good for papers
         )
-    else:
-        # Create combined groups based on unique color-marker pairs
-        if colour_map is None:
-            colour_map = [0] * len(embedding)
-        if marker_map is None:
-            marker_map = [0] * len(embedding)
-            
-        unique_combinations = sorted(set(zip(colour_map, marker_map)))
-        
-        # Create mappings for colors and markers
-        color_dict = {color: available_colors[i % len(available_colors)] 
-                     for i, color in enumerate(sorted(set(colour_map)))}
-        marker_dict = {marker: available_markers[i % len(available_markers)] 
-                       for i, marker in enumerate(sorted(set(marker_map)))}
-        
-        # Plot each unique combination
-        for color_val, marker_val in unique_combinations:
-            mask = (np.array(colour_map) == color_val) & (np.array(marker_map) == marker_val)
-            plt.scatter(
-                embedding[mask, 0],
-                embedding[mask, 1],
-                c=[color_dict[color_val]] * sum(mask),
-                marker=marker_dict[marker_val],
-                s=0.5 if small_dots else 15,
-                label=f'Color {color_val}, Marker {marker_val}' if legend else None
-            )
-    plt.gca().set_aspect('equal', 'datalim')
-    plt.title(title, fontsize=24)
-    #TODO: plot the colours of the dots to the legend
-    if True and (colour_map is not None or marker_map is not None):
-        # Create custom legend handles with both color and marker information
-        handles = []
-        if colour_map is not None and marker_map is not None:
-            # For both color and marker mappings
-            uni = np.unique(np.array(colour_map),return_counts = True)
-            for color_val, marker_val in unique_combinations:
-                handles.append(plt.Line2D([0], [0], 
-                                        marker=marker_dict[marker_val], 
-                                        color='w',
-                                        markerfacecolor=color_dict[color_val],
-                                        markersize=10,
-                                        label=f'{color_val} ({marker_val}) #{uni[1][list(uni[0]).index(color_val)]}'))
-        elif colour_map is not None:
-            # For color mapping only
-            for color_val in sorted(set(colour_map)):
-                handles.append(plt.Line2D([0], [0], 
-                                        marker='o', 
-                                        color='w',
-                                        markerfacecolor=color_dict[color_val],
-                                        markersize=10,
-                                        label=f'{color_val}'))
-        elif marker_map is not None:
-            # For marker mapping only
-            for marker_val in sorted(set(marker_map)):
-                handles.append(plt.Line2D([0], [0], 
-                                        marker=marker_dict[marker_val], 
-                                        color='w',
-                                        markerfacecolor='gray',
-                                        markersize=10,
-                                        label=f'{marker_val}'))
-        
-        plt.legend(handles=handles, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
-    
+    # plt.axis('square')
     # Construct save path and save figure
-    output_path = os.path.join(save_loc, f'umap_{name}.svg')
-    plt.savefig(output_path, format='svg', bbox_inches='tight')
-    plt.close()
-    return embedding
-
-
+    if save_path:
+        # We MUST use bbox_inches='tight' so the legend isn't cut off
+        fig.savefig(f'{save_path}/{name}.svg', format='svg', bbox_inches='tight')
+    
+    plt.close(fig) # Close the figure object
 
 def plot_tsne(
     df: pd.DataFrame,
     colors: list,
-    markers:list,
-    title: str = "t-SNE Projection",
+    markers: list,
+    save_path: str,
+    title: Optional[str] = "t-SNE Projection",
     name: str = '',
-    point_size: int = 30,
-    alpha: float = 0.7,
-    legend: bool = False,
-    save_path: Optional[str] = None,
-):
+    legend: bool = True):
     """
-    Plot t-SNE visualization with custom colors for each data point.
+    Plot t-SNE visualization with an improved legend placed outside the plot.
 
     Args:
         df: Input DataFrame (samples x features).
-        colors: List of colors (hex/rgb/names) for each data point.
+        colors: List of labels to be used for color mapping.
+        markers: List of labels to be used for marker mapping.
         title: Plot title.
-        figsize: Figure dimensions.
-        point_size: Size of scatter points.
-        alpha: Transparency of points.
-        legend: Whether to show a legend (if colors map to categories).
+        name: Filename for saving.
+        legend: Whether to show a legend.
         save_path: If provided, saves the plot to this path.
-    """
-    os.makedirs(save_path, exist_ok=True)
+    """        
     # Compute t-SNE
     tsne = TSNE(n_components=2, random_state=42)
     tsne_results = tsne.fit_transform(df.values)
-
-    # Create plot
-    plt.figure(figsize=(10, 8))
-    
-    # Define marker and color options
-    available_markers = ['o', 's', '^', 'D', 'v', 'p', '*', 'X', 'h', '8', 'P', 'd', '>', '<', '1', '2', '3', '4']
-    available_colors = plt.cm.rainbow(np.linspace(0, 1, len(set(colors)) if colors is not None else ['b']))
-    
-    if colors is None and markers is None:
-        # Simple scatter plot if no mappings provided
-        plt.scatter(
-            tsne_results[:, 0],
-            tsne_results[:, 1],
-            c='b',
-            marker='o'
-        )
-    else:
-        # Create combined groups based on unique color-marker pairs
-        if colors is None:
-            colors = [0] * len(tsne_results)
-        if markers is None:
-            colors = [0] * len(tsne_results)
-            
-        unique_combinations = sorted(set(zip(colors, markers)))
-        
-        # Create mappings for colors and markers
-        color_dict = {color: available_colors[i % len(available_colors)] 
-                     for i, color in enumerate(sorted(set(colors)))}
-        marker_dict = {marker: available_markers[i % len(available_markers)] 
-                       for i, marker in enumerate(sorted(set(markers)))}
-        
-        # Plot each unique combination
-        for color_val, marker_val in unique_combinations:
-            mask = (np.array(colors) == color_val) & (np.array(markers) == marker_val)
-            plt.scatter(
-                tsne_results[mask, 0],
-                tsne_results[mask, 1],
-                c=[color_dict[color_val]] * sum(mask),
-                marker=marker_dict[marker_val],
-                label=f'Color {color_val}, Marker {marker_val}' if legend else None
-            )
-    
-    plt.gca().set_aspect('equal', 'datalim')
-    plt.title(title, fontsize=24)
-
-    
-    # Construct save path and save figure
-    plt.savefig(f'{save_path}/{name}.svg', format='svg', bbox_inches='tight')
-    plt.close()
+    plot_projection(tsne_results,
+                    markers=markers,
+                    colors=colors,
+                    save_path= save_path,
+                    title=title,
+                    name=name,
+                    legend=legend)
 
 
 def plot_dendogram(embedding,linkage_method,number_of_clusters,figure_out_path,name=''):
@@ -568,7 +321,7 @@ def plot_summary_scores(scores_dict: dict, title: str, file_name: str, output_di
             'standardized': 'Standardized',
             'robust+': 'Robust Norm two waysalization',
             'standardized+': 'Standardized two ways',
-            '2_way_norm': 'Study corrected then genes Robust Normalizedalization',
+            '2_way_norm': 'Two-way normalized',
             'study_corrected': 'Study corrected',
             'imputed': 'No correction'
         }
@@ -761,12 +514,22 @@ def plot_iteration_scores_modified(scores_dict: dict, y_label: str, title: str, 
 import matplotlib.pyplot as plt
 import os
 import re
+name_map ={
+    'robust': 'Robust',
+    'standardized': 'Standardized',
+    'robust+': 'Robust Norm\ntwo ways',
+    'standardized+': 'Standardized\ntwo ways',
+    # '2_way_norm_og': 'Study corrected\nthen genes Robust Normalized OG',
+    '2_way_norm': 'Two-way\nNormalized',
+    'study_corrected': 'Study\nCorrected',
+    'imputed': 'No correction'
+}
 
 def plot_summary_scores_modified(scores_dict: dict, title: str, file_name: str, output_dir: str):
     """
     Generates an improved bar plot with grouped section labels for clustering scores,
     with bars re-ordered to group TREATMENT, TISSUE, and study scores consecutively
-    for each matrix type.
+    for each matrix type. Includes a legend for TISSUE, TREATMENT, and study.
 
     Args:
         scores_dict (dict): Dictionary with labels as keys and scores as values.
@@ -774,6 +537,12 @@ def plot_summary_scores_modified(scores_dict: dict, title: str, file_name: str, 
         file_name (str): The name of the output file (e.g., 'bar_rand_ind_grouped.svg').
         output_dir (str): The directory to save the plot in.
     """
+    # Note: This function assumes 're', 'os', and 'matplotlib.pyplot as plt' 
+    # are imported in the global scope where this function is defined.
+    
+    # Import required for custom legend patches
+    import matplotlib.patches as mpatches
+    
     if not scores_dict:
         print(f"Skipping plot '{title}' because the score dictionary is empty.")
         return
@@ -835,7 +604,7 @@ def plot_summary_scores_modified(scores_dict: dict, title: str, file_name: str, 
     color_map = {
         'treatment': '#1f77b4',  # Blue
         'tissue': '#2ca02c',     # Green
-        'study': '#d62728',      # Gray
+        'study': '#d62728',      # Red (as per hex, though comment said Gray)
     }
     
     # List to track the group type for the section labels
@@ -868,18 +637,7 @@ def plot_summary_scores_modified(scores_dict: dict, title: str, file_name: str, 
     # Increase the bottom margin to make space for the new section labels
     fig.subplots_adjust(bottom=0.25)
 
-    # mapping to show paper friendly labels for the group names
-    name_map ={
-        'robust': 'Robust Norm',
-        'standardized': 'Standardized',
-        'robust+': 'Robust Norm two ways',
-        'standardized+': 'Standardized two ways',
-        '2_way_norm_og': 'Study corrected then genes Robust Normalized OG',
-        '2_way_norm': 'Study corrected then genes Robust Normalized',
-        'study_corrected': 'Study corrected',
-        'imputed': 'No correction'
-    }
-
+    # This assumes 'name_map' exists in the scope where the function is called
     for start, end in zip(section_starts, section_ends):
         # Draw a vertical line at the start of each new section (except the first)
         if start > 0:
@@ -893,13 +651,20 @@ def plot_summary_scores_modified(scores_dict: dict, title: str, file_name: str, 
         label_text = name_map.get(raw_label_text, raw_label_text)
         
         # Add the group label text below the x-axis
-        ax.text(mid_point, -0.35, label_text, ha='center', va='top', fontsize=12, weight='bold',
-                transform=ax.get_xaxis_transform(), rotation=45)
+        ax.text(mid_point, -0.08, label_text, ha='center', va='top', fontsize=16, weight='bold',
+                transform=ax.get_xaxis_transform(), rotation=0)
 
     # --- 5. Final Plot Adjustments ---
-    ax.set_xticks(range(len(full_labels)))
-    # Set the simplified bar labels
-    ax.set_xticklabels(full_labels, rotation=90, fontsize=9)
+    
+    # **MODIFICATION**: Remove the x-axis tick marks and labels
+    ax.set_xticks([])
+    
+    # **MODIFICATION**: Add a custom legend
+    treatment_patch = mpatches.Patch(color=color_map['treatment'], label='TREATMENT')
+    tissue_patch = mpatches.Patch(color=color_map['tissue'], label='TISSUE')
+    study_patch = mpatches.Patch(color=color_map['study'], label='study')
+    ax.legend(handles=[treatment_patch, tissue_patch, study_patch], fontsize=12)
+
     ax.set_ylabel('Score', fontsize=12)
     ax.set_title(title, fontsize=16)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
@@ -909,11 +674,11 @@ def plot_summary_scores_modified(scores_dict: dict, title: str, file_name: str, 
     plt.savefig(os.path.join(output_dir, file_name),bbox_inches='tight')
     plt.close()
 
-
 def plot_summary_scores_relative(scores_dict: dict, title: str, file_name: str, output_dir: str):
     """
     Generates a bar plot showing scores for TREATMENT and TISSUE relative to the
     Study score (X - Study Score). Study scores are not plotted.
+    Includes a legend for TISSUE and TREATMENT colors.
 
     Args:
         scores_dict (dict): Dictionary with labels as keys and scores as values.
@@ -921,6 +686,12 @@ def plot_summary_scores_relative(scores_dict: dict, title: str, file_name: str, 
         file_name (str): The name of the output file (e.g., 'bar_rand_ind_relative.svg').
         output_dir (str): The directory to save the plot in.
     """
+    # Note: This function assumes 're', 'os', and 'matplotlib.pyplot as plt' 
+    # are imported in the global scope where this function is defined.
+    
+    # Import required for custom legend patches
+    import matplotlib.patches as mpatches
+    
     if not scores_dict:
         print(f"Skipping plot '{title}' because the score dictionary is empty.")
         return
@@ -1009,17 +780,7 @@ def plot_summary_scores_relative(scores_dict: dict, title: str, file_name: str, 
     fig.subplots_adjust(bottom=0.25)
 
     # mapping to show paper friendly labels for the group names
-    name_map ={
-        'robust': 'Robust Norm',
-        'standardized': 'Standardized',
-        'robust+': 'Robust Norm two ways',
-        'standardized+': 'Standardized two ways',
-        '2_way_norm_og': 'Study corrected then genes Robust Normalized OG',
-        '2_way_norm': 'Study corrected then genes Robust Normalized',
-        'study_corrected': 'Study corrected',
-        'imputed': 'No correction'
-    }
-
+    # This assumes 'name_map' exists in the scope where the function is called
     for start, end in zip(section_starts, section_ends):
         # Draw a vertical line at the start of each new section (except the first)
         if start > 0:
@@ -1032,14 +793,21 @@ def plot_summary_scores_relative(scores_dict: dict, title: str, file_name: str, 
         label_text = name_map.get(raw_label_text, raw_label_text)
         
         # Add the group label text below the x-axis
-        ax.text(mid_point, -0.35, label_text, ha='center', va='top', fontsize=12, weight='bold',
-                transform=ax.get_xaxis_transform(), rotation=45)
+        ax.text(mid_point, -0.08, label_text, ha='center', va='top', fontsize=16, weight='bold',
+                transform=ax.get_xaxis_transform(), rotation=0)
 
     # --- 5. Final Plot Adjustments ---
-    ax.set_xticks(range(len(full_labels)))
-    ax.set_xticklabels(full_labels, rotation=90, fontsize=9)
-    # Update Y-label to reflect the relative score
-    ax.set_ylabel(f'{ax.get_ylabel().replace("Score", "Relative Score (X - Study Score)")}', fontsize=12)
+    
+    # **MODIFICATION**: Remove the x-axis tick marks and labels
+    ax.set_xticks([])
+    
+    # **MODIFICATION**: Add a custom legend for TISSUE and TREATMENT
+    treatment_patch = mpatches.Patch(color=color_map['treatment'], label='TREATMENT')
+    tissue_patch = mpatches.Patch(color=color_map['tissue'], label='TISSUE')
+    ax.legend(handles=[treatment_patch, tissue_patch], fontsize=14)
+
+    # **MODIFICATION**: Update Y-label (more robustly)
+    ax.set_ylabel('Relative Score (X - Study Score)', fontsize=14)
     ax.set_title(title, fontsize=16)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     

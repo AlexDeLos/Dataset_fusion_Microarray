@@ -233,3 +233,142 @@ def box_plot(df: pd.DataFrame, cols_per_plot: int, out_path: str):
         # Save the figure and close it to free up memory
         plt.savefig(os.path.join(out_path, f'boxplot_group_{plot_num + 1}.png'))
         plt.close()
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+def find_and_plot_missing_genes(present_genes,out_opath, chr):
+    """
+    Identifies and plots the location of missing AGI gene locus identifiers 
+    (assumed to follow the ATxGyzzzz pattern with increments of 10) 
+    within each chromosome.
+
+    Args:
+        present_genes (list): A list of existing AGI locus identifiers (strings).
+    """
+
+    # --- 1. SIMULATION and DATA CLEANING ---
+    # Extract chromosome and numeric location from present genes
+    parsed_present = []
+    for gene_id in present_genes:
+        try:
+            # Assuming AGI format: AT[1-5]G[00000-99990]
+            # Chromosome is the 3rd character (index 2)
+            chromosome = gene_id[2]
+            # Numeric ID is the last 5 digits (index -5 onwards)
+            numeric_id = int(gene_id[-5:])
+            parsed_present.append((chromosome, numeric_id, gene_id))
+        except (ValueError, IndexError):
+            # Skip any IDs that don't match the expected structure
+            continue
+
+    if not parsed_present:
+        print("Error: No valid AGI gene IDs found in the input list (e.g., AT1G01010).")
+        return
+
+    # Find the maximum numeric ID seen for each chromosome to set the simulation range
+    max_ids = {}
+    for chr, num_id, _ in parsed_present:
+        max_ids[chr] = max(max_ids.get(chr, 0), num_id)
+
+    # Convert the present genes back into a set for fast lookup
+    present_gene_set = set(g for _, _, g in parsed_present)
+    
+    # --- 2. IDENTIFY MISSING GENES ---
+    missing_genes = []
+    
+    # Iterate through all chromosomes (1 to 5) and the simulated range
+    for chr_num in range(1, 6):
+        chr_label = str(chr_num)
+        max_id = max_ids.get(chr_label, 0)
+        
+        # Simulate all expected gene IDs for this chromosome
+        # AGI locus identifiers end in zero, e.g. 10010, 10020...
+        # We start at the smallest possible ID (01010) and go up to the max seen
+        # plus some buffer to ensure we capture the full range.
+        
+        # Max expected ID is 99990, but we use max_id as a practical limit
+        # plus a 100-gene buffer (1000 numeric steps) to cover any potential high-end gaps.
+        sim_max = min(99990, max_id + 1000) 
+
+        # Iterate through expected numeric IDs (increments of 10)
+        for num_id in range(1010, sim_max + 10, 10): 
+            # Format the 5-digit number, e.g., 1010 -> '01010'
+            formatted_num = f'{num_id:05d}'
+            # Construct the expected AGI ID
+            expected_id = f'AT{chr_label}G{formatted_num}'
+            
+            if expected_id not in present_gene_set:
+                # Store the missing gene and its numeric location/chromosome
+                missing_genes.append({
+                    'chromosome': chr_label,
+                    'locus_id': expected_id,
+                    'location_index': num_id
+                })
+
+    if not missing_genes:
+        print("All expected genes within the range of your input list appear to be present.")
+        return
+
+    # Convert missing genes to a DataFrame for easier plotting
+    missing_df = pd.DataFrame(missing_genes)
+    
+    # --- 3. PLOTTING ---
+    
+    print(f"Found {len(missing_genes)} missing gene IDs across chromosomes 1-5.")
+    
+    # Set up the plot (5 subplots for 5 chromosomes)
+    fig, axes = plt.subplots(
+        nrows=5, 
+        ncols=1, 
+        figsize=(12, 10), 
+        sharex=True,
+        sharey=True
+    )
+    plt.suptitle('🔍 Missing Arabidopsis thaliana Genes by Chromosome', fontsize=16, y=1.02)
+    
+    # AGI genes are numbered top (north) to bottom (south)
+    plt.xlabel('Gene Location Index (Southward)', fontsize=14) 
+    
+    # Create the visualization of a karyotype or a chromosome map.
+    # 
+
+    for i, chr_num in enumerate(range(1, 6)):
+        chr_label = str(chr_num)
+        ax = axes[i]
+        
+        # Filter data for the current chromosome
+        chr_data = missing_df[missing_df['chromosome'] == chr_label]
+        
+        # Plot each missing gene as a point on the chromosome axis
+        ax.scatter(
+            chr_data['location_index'], 
+            # Use a constant y-value to represent the chromosome line
+            [1] * len(chr_data), 
+            s=5, # size of the marker
+            color='red', 
+            alpha=0.6,
+            label=f'Missing Genes ({len(chr_data)})'
+        )
+        
+        # Set y-axis properties to make it look like a single line
+        ax.set_yticks([]) # Remove y-axis ticks
+        ax.set_ylim(0.5, 1.5) # A small range to center the line
+        
+        # Add a horizontal line to represent the chromosome
+        ax.axhline(1, color='lightgray', linestyle='-', linewidth=2)
+        
+        # Add the chromosome label on the left
+        ax.set_ylabel(f'Chr {chr_label}', rotation=0, labelpad=30, fontsize=12, weight='bold')
+        
+        # Set x-axis limit based on the maximum ID for clarity
+        max_idx = max_ids.get(chr_label, 1000)
+        ax.set_xlim(1000, max_idx + 100)
+        
+        # Add a title or legend
+        ax.legend(loc='upper right', frameon=False)
+
+
+    plt.tight_layout()
+    plt.savefig(f'{out_opath}missingGenesChr{chr}.svg')
+    # plt.show()
