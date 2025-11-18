@@ -10,7 +10,7 @@ from src.data_analisys.diff_exp_and_enrichment.plot_enrichment_new import plot_e
 from src.data_analisys.diff_exp_and_enrichment.diff_expr import diff_exp_combine_tissues
 
 
-iterations = 10000
+iterations = 100000
 
 treatments = [
     "Drought Stress",
@@ -38,7 +38,7 @@ STRESS_GO_ROOTS_small = {
     "GO:0009409": "Cold Stress", # response to cold
     "GO:0009644": "High Light Stress", # response to high light intensity
 }
-def get_spider_plots(path, results_path, data_types, Fulls, tissues):
+def get_spider_plots(path, results_path, data_types, Fulls, tissues, pures,filter):
     """
     Generates spider plots comparing a single GO term across all experiment combinations.
     """
@@ -59,7 +59,7 @@ def get_spider_plots(path, results_path, data_types, Fulls, tissues):
                     # if (not Full) and (tissue is None):
                     #     break
                     # Reconstruct the experiment name and path from the main loop
-                    exp_name = f'{EXPERIMENT_NAME}_{data_type}_{tissue if tissue else 'All_tissues'}_{'full' if Full else 'sanity'}_pure_min_group_0'
+                    exp_name = f'{EXPERIMENT_NAME}_{data_type}_{tissue if tissue else 'All_tissues'}_{'full' if Full else 'sanity'}_{'pure' if pures else 'mixed'}_min_group_{filter}'
                     out_path = f'{results_path}GSEA_enrichment_{data_type}_{exp_name}/'
 
                     stress = STRESS_GO_ROOTS_small[term]
@@ -121,14 +121,14 @@ def get_spider_plots(path, results_path, data_types, Fulls, tissues):
 
 def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                 data_types = ['study_corrected','imputed'],#,'2_way_norm','standardized', 'robust'],#,],#,'standardized+'],#,'standardized','standardized', 'robust'],#'robust+','2_way_norm_og',,
-                                pures = [True],#,False],
+                                pures = [True,False],
                                 Fulls = [True,False],
-                                filter_low_combination = [0],
+                                filter_low_combination = [0,15],
                                 tissues = [None,'leaf'],
                                 just_plot=False):    
     for fil in filter_low_combination:
-        for data_type in data_types:
-            for pure in pures:
+        for pure in pures:
+            for data_type in data_types:
                 for Full in Fulls:
                     for tissue in tissues:
                         exp_name = f'{EXPERIMENT_NAME}_{data_type}_{tissue if tissue else 'All_tissues'}_{'full' if Full else 'sanity'}_{'pure' if pure else 'mixed'}_min_group_{fil}'
@@ -150,7 +150,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                         # GSEA
                             # 1. Define file paths
                         constant_data_path = CORE_DATA_DIR
-                        out_path = f'{FIGURES_DIR}GSEA_enrichment_results/GSEA_enrichment_{data_type}_{exp_name}/'
+                        diff_exp_out_path = f'{FIGURES_DIR}GSEA_enrichment_results/GSEA_enrichment_{data_type}_{exp_name}/'
                         GO_OBO_FILE = f'{constant_data_path}/go-basic.obo'
                         ANNOTATION_FILE = f'{constant_data_path}/tair.gaf.gz'
                         
@@ -160,8 +160,8 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                         # go_terms = pd.read_excel(f'{constant_data_path}GO_terms_to_enrich_2.xlsx')
                         for stress in treatments:
                             try:
-                                if (not just_plot) and (not os.path.isfile(f'{out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv')):
-                                    STRESS_IDS =STRESS_GO_ROOTS_small #= {key for key, val in STRESS_GO_ROOTS_small.items() if val == stress}
+                                if (not just_plot) and (not os.path.isfile(f'{diff_exp_out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv')):
+                                    STRESS_IDS = {key for key, val in STRESS_GO_ROOTS_small.items() if val == stress}
                                     obodag, geneid2gos = get_go_data(GO_OBO_FILE, ANNOTATION_FILE,stress_root_go_ids=STRESS_IDS)
                                     # filter
                                     obodag = {key: value for key, value in obodag.items() if key in STRESS_IDS}  
@@ -170,6 +170,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                     ids = None
                                     # diff_exp_results['rank'] = abs(diff_exp_results['logFC']) *(-np.log(diff_exp_results['adj.P.Val']))
                                     diff_exp_results['rank'] = diff_exp_results['logFC'] *(-np.log10(diff_exp_results['adj.P.Val']))
+                                    
                                     gsea_results_df = perform_gsea_enrichment(
                                         ranked_gene_df = diff_exp_results,
                                         gene_col = 'ID',         # The column with AGI codes in your data
@@ -178,7 +179,7 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                         geneid2gos = geneid2gos,
                                         keys = ids,
                                         stress = stress,
-                                        out_path = out_path,
+                                        out_path = diff_exp_out_path,
                                         permutations = iterations
                                     )
                                     gsea_results_df.sort_values(by=['FDR q-val'])
@@ -186,11 +187,12 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                                     print(gsea_results_df.head())
                                     
                                     # Save results to a file
-                                    gsea_results_df.to_csv(f'{out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv', index=False)
-                                    print(f"\nResults saved to {f'{out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv'}")
+                                    gsea_results_df.to_csv(f'{diff_exp_out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv', index=False)
+                                    del gsea_results_df
+                                    print(f"\nResults saved to {f'{diff_exp_out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv'}")
                                 else:
-                                    print(f"\nLoading pre existing results from: {f'{out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv'}")
-                                    gsea_results_df = pd.read_csv(f'{out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv')
+                                    print(f"\nLoading pre existing results from: {f'{diff_exp_out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv'}")
+                                    gsea_results_df = pd.read_csv(f'{diff_exp_out_path}{stress}_gsea_go_enrichment_results_{iterations}.csv')
                                 plot_enrichment_scatter_interactive(gsea_results_df,save_path=f'{FIGURES_DIR}plots_enrichment/{exp_name.split('_')[0]}/{'full' if Full else 'sanity'}/{tissue if tissue is not None else 'All-Tissues'}/{data_type}/{fil}/{'pure' if pure else 'mixed'}/{stress}.html',
                                                                     title=f'GSEA for {stress} on {tissue if tissue is not None else 'All-Tissues'} on {'full' if Full else 'sanity'} with {'pure' if pure else 'mixed'} treatments with a filter of >{fil}',treatments = treatments, normalizations=data_types)
 
@@ -198,14 +200,16 @@ def run_diff_exp_and_enrichment(save_dir:str=PROCESSED_DATA_FOLDER,
                             except Exception as e:
                                 print(f"An error occurred during the analysis: {e}")
     
-    # Updated call to get_spider_plots, passing all the loop parameters
-    get_spider_plots(
-        path=f'{FIGURES_DIR}GSEA_radar_comparison/{EXPERIMENT_NAME}/',
-        results_path=f'{FIGURES_DIR}GSEA_enrichment_results/',
-        data_types=data_types,
-        Fulls=Fulls,
-        tissues=tissues,
-    )
+            # Updated call to get_spider_plots, passing all the loop parameters
+            get_spider_plots(
+                path=f'{FIGURES_DIR}GSEA_radar_comparison/{EXPERIMENT_NAME}_{fil}_{pure}/',
+                results_path=f'{FIGURES_DIR}GSEA_enrichment_results/',
+                data_types=data_types,
+                Fulls=Fulls,
+                tissues=tissues,
+                pures=pure,
+                filter=fil
+            )
 
     print("DONE with enrichment pipeline")
 

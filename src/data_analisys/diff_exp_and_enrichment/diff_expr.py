@@ -159,6 +159,8 @@ def diff_exp_combine_tissues(treatments,save_dir,data_type,out_dir,samples=None,
             # genes_to_save = significant_genes[significant_genes['adj.P.Val']<0.05][['ID','t','logFC','adj.P.Val']]
             genes_to_save = significant_genes[['ID','t','logFC','adj.P.Val']]
             genes_to_save.to_csv(f"{output_dir}{output_filename}_genes.csv", index=False)
+            del genes_to_save
+            del diff_exp_results
             print(f"Successfully completed analysis for '{treatment}'. Results saved.")
 
         except Exception as e:

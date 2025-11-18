@@ -260,6 +260,7 @@ def perform_gsea_enrichment(
     
     print("GSEA complete. Formatting results...")
     results_df = pre_res.res2d
+    neg = 0
     results_df['NOM p-val'] = results_df['NOM p-val'].astype(float).replace(0, 1/permutation_num)
     results_df['FDR q-val'] = results_df['FDR q-val'].astype(float).replace(0, 1/permutation_num)
     results_df['FWER p-val'] = results_df['FWER p-val'].astype(float).replace(0, 1/permutation_num)
@@ -282,17 +283,6 @@ def perform_gsea_enrichment(
     # ]]
     
     return significant_results.sort_values(by='ES', ascending=False)
-
-# --- Example Usage ---
-
-# Assume you have a DataFrame `diff_exp_results` from your limma analysis
-# It must have gene IDs and a ranking metric (e.g., 'logFC' or 't')
-# For example:
-# diff_exp_results = pd.DataFrame({
-#     'ID': ['AT1G01010', 'AT1G01020', 'AT1G01030', ...],
-#     'logFC': [2.5, -1.8, 0.5, ...],
-#     'P.Value': [0.001, 0.02, 0.55, ...]
-# })
 
 if __name__ == "__main__":
     # 1. Define file paths

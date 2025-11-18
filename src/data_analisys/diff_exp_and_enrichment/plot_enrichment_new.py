@@ -534,9 +534,6 @@ FWER p-val: {row['FWER p-val']:.3g}
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
-from math import pi
-
 # --- Imports from matplotlib example ---
 from matplotlib.patches import Circle, RegularPolygon
 from matplotlib.path import Path
@@ -656,45 +653,41 @@ matplotlib.rc('font', **font)
 # -----------------------------------------------------------------------------
 
 def create_gsea_spider_plot(df, save_path, term):
-    """
-    Generates a spider plot with shared scaling for p-values and 
-    individual scaling for ES/NES. Includes a p=0.01 threshold line.
-    """
-    
-    # 1. Define columns and groups
+    # ... (Columns setup and initial data processing remains the same) ...
     p_val_cols = ['NOM p-val', 'FDR q-val', 'FWER p-val']
     other_cols = ['ES', 'NES']
     stats_cols = other_cols + p_val_cols
     
-    # Check columns
-    missing_cols = [col for col in stats_cols + ['Name'] if col not in df.columns]
-    if missing_cols:
-        print(f"Error: DataFrame is missing required columns: {missing_cols}")
-        return None, None
-
-    # 2. Process Data (Log Transform & Normalization)
     try:
         plot_data = df[stats_cols].copy()
-        
+        plot_data = plot_data.dropna()
         # Log transform p-values
         for col in p_val_cols:
             plot_data[col] = -np.log(plot_data[col] + 1e-10)
+            # plot_data[col] = plot_data[col].replace(np.nan, 0.1)
 
         # --- Determine Min/Max Ranges ---
         ranges = {}
-
-        # A. Shared scale for P-values
         all_p_vals = plot_data[p_val_cols].values.flatten()
         p_min, p_max = all_p_vals.min(), all_p_vals.max()
-        p_pad = (p_max - p_min) * 0.05
-        p_range = (p_min - p_pad, p_max + p_pad)
+        
+        # 🐛 FIX: Ensure non-zero range for P-values when all are identical
+        if p_max == p_min:
+            # Enforce a padding of 0.1 if the range is zero. This centers 
+            # the constant value at 0.5 (middle) of the scale.
+            p_pad_val = 0.1 
+            p_range = (p_min - p_pad_val, p_max + p_pad_val)
+        else:
+            p_pad = (p_max - p_min) * 0.05
+            p_range = (p_min - p_pad, p_max + p_pad)
+        # END FIX
 
         for col in p_val_cols:
             ranges[col] = p_range
-
-        # B. Individual scales for ES and NES
+        # B. Individual scales for ES and NES (already robust)
         for col in other_cols:
             val_min, val_max = plot_data[col].min(), plot_data[col].max()
+            # If val_max == val_min, pad is 0.1, creating a non-zero range.
             pad = (val_max - val_min) * 0.05 if val_max != val_min else 0.1
             ranges[col] = (val_min - pad, val_max + pad)
 
@@ -702,7 +695,8 @@ def create_gsea_spider_plot(df, save_path, term):
         plot_data_scaled = plot_data.copy()
         for col in stats_cols:
             min_v, max_v = ranges[col]
-            denom = (max_v - min_v) if (max_v - min_v) != 0 else 1.0
+            # Denom will be non-zero thanks to the fix above
+            denom = (max_v - min_v) if (max_v - min_v) != 0 else 1.0 
             plot_data_scaled[col] = (plot_data[col] - min_v) / denom
 
         names = df['Name']
@@ -711,20 +705,16 @@ def create_gsea_spider_plot(df, save_path, term):
         print(f"Error during data scaling: {e}")
         return None, None
 
-    # 3. Set up the spider plot
+    # ... (Plot setup and plotting loop remains the same) ...
     num_vars = len(stats_cols)
     theta = radar_factory(num_vars, frame='polygon')
 
     fig, ax = plt.subplots(figsize=(10, 10), subplot_kw=dict(projection='radar'))
 
-    # Update labels
-    labels_display = ['ES', 'NES'] + [f"-log10({c})" for c in p_val_cols]
+    labels_display = ['ES', 'NES'] + [f"-ln({c})" for c in p_val_cols]
     ax.set_varlabels(labels_display)
-    
-    # Push axis labels outward
     ax.tick_params(pad=35) 
 
-    # 4. Plot each row
     colors = plt.cm.tab10.colors 
     for i, row in plot_data_scaled.iterrows():
         values = row.values.flatten().tolist()
@@ -735,41 +725,28 @@ def create_gsea_spider_plot(df, save_path, term):
         ax.fill(theta, values, color=color, alpha=0.1)
 
     # ---------------------------------------------------------
-    # NEW BLOCK: Add p=0.01 Significance Threshold Line
+    # Threshold Line (Including previous fix for open line)
     # ---------------------------------------------------------
-    # Calculate log-transformed threshold matching the data transform
-    thresh_val = -np.log10(0.01 + 1e-10)
-    
-    # Get the range used for normalization (shared across p-cols)
+    thresh_val = -np.log(0.01 + 1e-10)
     p_min_r, p_max_r = ranges[p_val_cols[0]]
     
-    # Normalize the threshold to [0, 1]
     if (p_max_r - p_min_r) != 0:
         thresh_norm = (thresh_val - p_min_r) / (p_max_r - p_min_r)
     else:
-        thresh_norm = -1 # Fallback
+        thresh_norm = -1
         
-    # Only draw if it falls within the visible plot area (or close to it)
     if 0 <= thresh_norm <= 1.0:
-        # Find the angular indices for the p-value columns
         p_indices = [i for i, col in enumerate(stats_cols) if col in p_val_cols]
         p_angles = [theta[i] for i in p_indices]
+        p_radii = [thresh_norm] * len(p_angles)
         
-        # Create radius data (constant radius for the threshold)
-        p_radii = [thresh_norm] * len(p_indices)
-        
-        # Plot the line
-        # We use ax.lines[-1] to fix the "closed loop" behavior of RadarAxes
         ax.plot(p_angles, p_radii, color='red', linestyle=':', linewidth=2, label='p=0.01', zorder=10)
         
-        # FIX: RadarAxes automatically closes the line (connects end to start).
-        # We retrieve the line object and remove the last point to keep it open.
         line_obj = ax.lines[-1]
         lx, ly = line_obj.get_data()
         if len(lx) > len(p_angles):
             line_obj.set_data(lx[:-1], ly[:-1])
             
-        # Add a text label for the threshold
         ax.text(p_angles[-1], thresh_norm, ' p=0.01', 
                 color='red', ha='left', va='center', fontsize=10, fontweight='bold')
     # ---------------------------------------------------------
@@ -802,4 +779,5 @@ def create_gsea_spider_plot(df, save_path, term):
     plt.title(f'GSEA Results: {term}', size=18, y=1.1)
     
     fig.savefig(f'{save_path}', bbox_inches='tight')
-    return fig, ax
+    plt.close()
+    return

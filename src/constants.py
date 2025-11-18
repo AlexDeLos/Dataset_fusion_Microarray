@@ -1,8 +1,8 @@
 import os
 #NEED TO CHANGE
 GLOBAL_DIR_PATH = F'{os.getcwd()}/'
-CLUSTER_RUN = False
-EXPERIMENT_NAME = '2.2'
+CLUSTER_RUN = True
+EXPERIMENT_NAME = '3.0'
 
 
 DATA_IMPORT_DIR = './data/downloads/'
